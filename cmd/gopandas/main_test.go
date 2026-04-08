@@ -34,6 +34,11 @@ func resetFlags() {
 	readSortDesc = false
 	readOutput = ""
 	readFormat = ""
+
+	// Convert command flags
+	convertFrom = ""
+	convertTo = ""
+	convertSelect = ""
 }
 
 func TestReadDefaultHead(t *testing.T) {
@@ -295,5 +300,201 @@ func TestReadOutputJSON(t *testing.T) {
 	content := string(data)
 	if !strings.Contains(content, "Alice") {
 		t.Errorf("expected JSON output to contain 'Alice', got:\n%s", content)
+	}
+}
+
+func TestConvertCSVToJSON(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.json"
+	output, err := executeCommand("convert", "testdata/sample.csv", outPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(output, "Converted") {
+		t.Error("expected output to contain 'Converted'")
+	}
+	if !strings.Contains(output, "5 rows") {
+		t.Error("expected output to mention '5 rows'")
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	if !strings.Contains(string(data), "Alice") {
+		t.Error("expected JSON output to contain 'Alice'")
+	}
+}
+
+func TestConvertJSONToCSV(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.csv"
+	_, err := executeCommand("convert", "testdata/sample.json", outPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "name") {
+		t.Error("expected CSV output to contain 'name' header")
+	}
+	if !strings.Contains(content, "Alice") {
+		t.Error("expected CSV output to contain 'Alice'")
+	}
+}
+
+func TestConvertWithSelect(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.csv"
+	_, err := executeCommand("convert", "testdata/sample.csv", outPath, "--select", "name,age")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "name") {
+		t.Error("expected output to contain 'name'")
+	}
+	if strings.Contains(content, "salary") {
+		t.Error("expected output NOT to contain 'salary'")
+	}
+}
+
+func TestConvertExplicitFormats(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.dat"
+	_, err := executeCommand("convert", "testdata/sample.csv", outPath, "--from", "csv", "--to", "json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "Alice") {
+		t.Error("expected JSON output to contain 'Alice'")
+	}
+}
+
+func TestReadJSON(t *testing.T) {
+	resetFlags()
+
+	output, err := executeCommand("read", "testdata/sample.json")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(output, "Alice") {
+		t.Error("expected output to contain 'Alice'")
+	}
+	if !strings.Contains(output, "Bob") {
+		t.Error("expected output to contain 'Bob'")
+	}
+}
+
+func TestReadUnsupportedExtension(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "testdata/sample.txt")
+	if err == nil {
+		t.Fatal("expected error for unsupported extension .txt")
+	}
+	if !strings.Contains(err.Error(), "unsupported") {
+		t.Errorf("expected error to mention 'unsupported', got: %v", err)
+	}
+}
+
+func TestReadMissingFile(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "testdata/nonexistent.csv")
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+func TestReadInvalidFilter(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "testdata/sample.csv", "--filter", "invalid gibberish %%")
+	if err == nil {
+		t.Fatal("expected error for invalid filter expression")
+	}
+}
+
+func TestReadInvalidAgg(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "testdata/sample.csv", "--groupby", "city", "--agg", "median")
+	if err == nil {
+		t.Fatal("expected error for unsupported aggregation 'median'")
+	}
+	if !strings.Contains(err.Error(), "unsupported aggregation") {
+		t.Errorf("expected error to mention 'unsupported aggregation', got: %v", err)
+	}
+}
+
+func TestReadFullPipeline(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/pipeline_result.csv"
+	_, err := executeCommand("read", "testdata/sample.csv",
+		"--select", "name,age,salary",
+		"--filter", "age >= 30",
+		"--sort", "salary",
+		"--sort-desc",
+		"--output", outPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "Alice") {
+		t.Error("expected output to contain 'Alice' (age 30)")
+	}
+	if !strings.Contains(content, "Charlie") {
+		t.Error("expected output to contain 'Charlie' (age 35)")
+	}
+	if !strings.Contains(content, "Eve") {
+		t.Error("expected output to contain 'Eve' (age 32)")
+	}
+	if strings.Contains(content, "Bob") {
+		t.Error("expected output NOT to contain 'Bob' (age 25)")
+	}
+	if strings.Contains(content, "Diana") {
+		t.Error("expected output NOT to contain 'Diana' (age 28)")
+	}
+}
+
+func TestConvertMissingFile(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.csv"
+	_, err := executeCommand("convert", "testdata/nonexistent.csv", outPath)
+	if err == nil {
+		t.Fatal("expected error for missing input file")
 	}
 }
