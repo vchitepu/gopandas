@@ -160,3 +160,33 @@ func TestSubDF(t *testing.T) {
 		t.Errorf("subDF At(1, salary) = %v, want 120000", val)
 	}
 }
+
+func TestSum(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Sum()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Sum() rows = %d, want 2", rows)
+	}
+	// Check Eng salary sum: 100000 + 120000 + 110000 = 330000
+	// Check Sales salary sum: 80000 + 90000 = 170000
+	// Result is sorted by group key, so Eng=row0, Sales=row1
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 330000.0 {
+		t.Errorf("Sum() Eng salary = %v, want 330000", engSalary)
+	}
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 170000.0 {
+		t.Errorf("Sum() Sales salary = %v, want 170000", salesSalary)
+	}
+}
