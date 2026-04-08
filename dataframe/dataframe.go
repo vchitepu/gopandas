@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vinaychitepu/gopandas/dtype"
 	"github.com/vinaychitepu/gopandas/index"
 	"github.com/vinaychitepu/gopandas/series"
 )
@@ -128,4 +129,18 @@ func (df DataFrame) Columns() []string {
 // Len returns the number of rows.
 func (df DataFrame) Len() int {
 	return df.index.Len()
+}
+
+// DTypes returns a map of column name to dtype.DType.
+func (df DataFrame) DTypes() map[string]dtype.DType {
+	out := make(map[string]dtype.DType, len(df.columns))
+	for _, col := range df.columns {
+		out[col] = df.data[col].DType()
+	}
+	return out
+}
+
+// Index returns the Index of the DataFrame.
+func (df DataFrame) Index() index.Index {
+	return df.index
 }
