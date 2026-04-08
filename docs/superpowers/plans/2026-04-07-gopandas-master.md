@@ -33,7 +33,7 @@ Layer 5 (cli):         cmd/gopandas
 | 3a | `groupby` | `plans/2026-04-07-groupby.md` | DONE |
 | 3b | `ops` | `plans/2026-04-07-ops.md` | DONE |
 | 4 | `io` | `plans/2026-04-07-io.md` | DONE |
-| 5 | `cmd/gopandas` | `plans/2026-04-07-cli.md` | NOT STARTED |
+| 5 | `cmd/gopandas` | `plans/2026-04-07-cli.md` | DONE |
 
 ### Status values
 - `NOT STARTED` — plan written, not yet executed
