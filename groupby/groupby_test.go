@@ -440,3 +440,67 @@ func TestLast(t *testing.T) {
 		t.Errorf("Last() Sales name = %v, want Diana", salesName)
 	}
 }
+
+func TestAgg(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Agg(map[string]string{
+		"salary": "sum",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Agg() rows = %d, want 2", rows)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 330000.0 {
+		t.Errorf("Agg(sum) Eng salary = %v, want 330000", engSalary)
+	}
+}
+
+func TestAgg_MultipleFunctions(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key":  []string{"A", "A", "B", "B"},
+		"val1": []float64{10, 20, 30, 40},
+		"val2": []float64{1, 2, 3, 4},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	result, err := gb.Agg(map[string]string{
+		"val1": "mean",
+		"val2": "max",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A val1 mean = 15, B val1 mean = 35
+	aVal1, err := result.At(0, "val1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal1 != 15.0 {
+		t.Errorf("Agg(mean) A val1 = %v, want 15", aVal1)
+	}
+	// A val2 max = 2, B val2 max = 4
+	aVal2, err := result.At(0, "val2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal2 != 2.0 {
+		t.Errorf("Agg(max) A val2 = %v, want 2", aVal2)
+	}
+	bVal2, err := result.At(1, "val2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bVal2 != 4.0 {
+		t.Errorf("Agg(max) B val2 = %v, want 4", bVal2)
+	}
+}
