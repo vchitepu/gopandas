@@ -27,7 +27,7 @@ var (
 )
 
 var readCmd = &cobra.Command{
-	Use:   "read [file]",
+	Use:   "read <file>",
 	Short: "Read and display a data file",
 	Long:  "Read a CSV, JSON, or Parquet file and apply optional transformations (select, filter, groupby, sort).",
 	Args:  cobra.ExactArgs(1),
@@ -35,7 +35,7 @@ var readCmd = &cobra.Command{
 }
 
 func init() {
-	readCmd.Flags().IntVar(&readHead, "head", 0, "show first N rows (default: all)")
+	readCmd.Flags().IntVar(&readHead, "head", 0, "Print first N rows (default: 5 if no other display flag set)")
 	readCmd.Flags().IntVar(&readTail, "tail", 0, "show last N rows")
 	readCmd.Flags().BoolVar(&readDescribe, "describe", false, "show summary statistics")
 	readCmd.Flags().BoolVar(&readShape, "shape", false, "show (rows, cols)")
@@ -55,14 +55,10 @@ func init() {
 func runRead(cmd *cobra.Command, args []string) error {
 	path := args[0]
 
-	// Determine format
-	format := readFormat
-	if format == "" {
-		var err error
-		format, err = inferFormat(path)
-		if err != nil {
-			return err
-		}
+	// Determine input format from extension
+	format, err := inferFormat(path)
+	if err != nil {
+		return err
 	}
 
 	// Load the file
@@ -125,7 +121,6 @@ func runRead(cmd *cobra.Command, args []string) error {
 		if err := writeFile(df, readOutput, outFormat); err != nil {
 			return fmt.Errorf("output: %w", err)
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "Written to %s\n", readOutput)
 		return nil
 	}
 
@@ -161,8 +156,13 @@ func runRead(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Default: show all rows
-	fmt.Fprintln(out, df.String())
+	// Default: head (5 if not specified).
+	n := 5
+	rows, _ := df.Shape()
+	if n > rows {
+		n = rows
+	}
+	fmt.Fprintln(out, df.Head(n).String())
 	return nil
 }
 

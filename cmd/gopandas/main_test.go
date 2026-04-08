@@ -289,7 +289,7 @@ func TestReadOutputJSON(t *testing.T) {
 	resetFlags()
 	tmpDir := t.TempDir()
 	outPath := filepath.Join(tmpDir, "out.json")
-	_, err := executeCommand("read", "--output", outPath, "--format", "json", "testdata/sample.json")
+	_, err := executeCommand("read", "--output", outPath, "--format", "json", "testdata/sample.csv")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
