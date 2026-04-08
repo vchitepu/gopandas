@@ -47,7 +47,7 @@ func init() {
 	readCmd.Flags().StringVar(&readSort, "sort", "", "column to sort by")
 	readCmd.Flags().BoolVar(&readSortDesc, "sort-desc", false, "sort descending")
 	readCmd.Flags().StringVar(&readOutput, "output", "", "write result to file")
-	readCmd.Flags().StringVar(&readFormat, "format", "", "file format (csv, json, parquet); inferred from extension if omitted")
+	readCmd.Flags().StringVar(&readFormat, "format", "", "output format: csv, json, parquet (overrides extension)")
 
 	rootCmd.AddCommand(readCmd)
 }

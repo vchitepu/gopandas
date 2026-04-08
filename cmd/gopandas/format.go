@@ -23,7 +23,7 @@ func inferFormat(path string) (string, error) {
 	case ".parquet", ".pq":
 		return "parquet", nil
 	default:
-		return "", fmt.Errorf("unsupported file extension %q (use --format to specify)", ext)
+		return "", fmt.Errorf("unsupported file extension %q", ext)
 	}
 }
 
@@ -60,21 +60,30 @@ func loadFile(path, format string) (dataframe.DataFrame, error) {
 }
 
 // writeFile writes a DataFrame to a file in the specified format.
+// On error, it removes any partially written file.
 func writeFile(df dataframe.DataFrame, path, format string) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("create %s: %w", path, err)
 	}
-	defer f.Close()
 
-	switch format {
-	case "csv":
-		return csvio.ToCSV(df, f)
-	case "json":
-		return jsonio.ToJSON(df, f, jsonio.OrientRecords)
-	case "parquet":
-		return parquetio.ToParquet(df, f)
-	default:
-		return fmt.Errorf("unsupported output format %q", format)
+	writeErr := func() error {
+		defer f.Close()
+		switch format {
+		case "csv":
+			return csvio.ToCSV(df, f)
+		case "json":
+			return jsonio.ToJSON(df, f, jsonio.OrientRecords)
+		case "parquet":
+			return parquetio.ToParquet(df, f)
+		default:
+			return fmt.Errorf("unsupported output format %q", format)
+		}
+	}()
+
+	if writeErr != nil {
+		os.Remove(path) // clean up partial/empty file
+		return writeErr
 	}
+	return nil
 }
