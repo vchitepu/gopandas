@@ -29,10 +29,10 @@ Layer 5 (cli):         cmd/gopandas
 | 0b | `arrowutil` (adapter) | `plans/2026-04-07-arrow.md` | DONE |
 | 0c | `index` | `plans/2026-04-07-index.md` | DONE |
 | 1 | `series` | `plans/2026-04-07-series.md` | DONE |
-| 2 | `dataframe` | `plans/2026-04-07-dataframe.md` | NOT STARTED |
-| 3a | `groupby` | `plans/2026-04-07-groupby.md` | NOT STARTED |
-| 3b | `ops` | `plans/2026-04-07-ops.md` | NOT STARTED |
-| 4 | `io` | `plans/2026-04-07-io.md` | NOT STARTED |
+| 2 | `dataframe` | `plans/2026-04-07-dataframe.md` | DONE |
+| 3a | `groupby` | `plans/2026-04-07-groupby.md` | DONE |
+| 3b | `ops` | `plans/2026-04-07-ops.md` | DONE |
+| 4 | `io` | `plans/2026-04-07-io.md` | DONE |
 | 5 | `cmd/gopandas` | `plans/2026-04-07-cli.md` | NOT STARTED |
 
 ### Status values
