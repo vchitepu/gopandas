@@ -136,6 +136,28 @@ func exampleIO() {
 }
 ```
 
+### 5) Parse CSV date columns as timestamps
+
+```go
+in, err := os.Open("transactions.csv")
+if err != nil {
+	panic(err)
+}
+defer in.Close()
+
+df, err := csvio.FromCSV(
+	in,
+	csvio.WithParseDates([]string{"Date"}),
+	// optional explicit format (Go layout syntax)
+	csvio.WithDateFormats([]string{"01/02/2006"}),
+)
+if err != nil {
+	panic(err)
+}
+
+fmt.Println(df.DTypes()) // Date => timestamp
+```
+
 ## CLI Usage
 
 Build once:
@@ -152,6 +174,13 @@ go build -o gopandas ./cmd/gopandas
 ./gopandas read data.csv --shape
 ./gopandas read data.csv --dtypes
 ./gopandas read data.csv --describe
+```
+
+### Parse dates in CSV columns
+
+```bash
+./gopandas read transactions.csv --parse-dates Date --dtypes
+./gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --dtypes
 ```
 
 ### Select/filter/sort from CLI

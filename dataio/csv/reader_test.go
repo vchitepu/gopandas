@@ -3,6 +3,7 @@ package csv
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/vchitepu/gopandas/dtype"
 )
@@ -53,6 +54,63 @@ func TestFromCSV_Simple(t *testing.T) {
 	}
 	if val != 92.3 {
 		t.Errorf("At(2, score) = %v, want 92.3", val)
+	}
+}
+
+func TestFromCSV_WithParseDates(t *testing.T) {
+	input := "Date,Description,Amount\n12/31/2025,Coffee,3.25\n12/30/2025,Lunch,15.00\n"
+	df, err := FromCSV(strings.NewReader(input), WithParseDates([]string{"Date"}))
+	if err != nil {
+		t.Fatalf("FromCSV: %v", err)
+	}
+
+	dtypes := df.DTypes()
+	if dtypes["Date"] != dtype.Timestamp {
+		t.Fatalf("Date dtype = %v, want Timestamp", dtypes["Date"])
+	}
+
+	val, err := df.At(0, "Date")
+	if err != nil {
+		t.Fatalf("At(0, Date): %v", err)
+	}
+
+	tm, ok := val.(time.Time)
+	if !ok {
+		t.Fatalf("Date value type = %T, want time.Time", val)
+	}
+
+	want := time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC)
+	if !tm.Equal(want) {
+		t.Fatalf("Date value = %v, want %v", tm, want)
+	}
+}
+
+func TestFromCSV_WithDateFormats(t *testing.T) {
+	input := "Date,Description\n2025-12-31,Coffee\n2025-12-30,Lunch\n"
+	df, err := FromCSV(strings.NewReader(input),
+		WithParseDates([]string{"Date"}),
+		WithDateFormats([]string{"2006-01-02"}),
+	)
+	if err != nil {
+		t.Fatalf("FromCSV: %v", err)
+	}
+
+	dtypes := df.DTypes()
+	if dtypes["Date"] != dtype.Timestamp {
+		t.Fatalf("Date dtype = %v, want Timestamp", dtypes["Date"])
+	}
+}
+
+func TestFromCSV_ParseDatesFallbackToString(t *testing.T) {
+	input := "Date,Description\nnot-a-date,Coffee\nstill-not-a-date,Lunch\n"
+	df, err := FromCSV(strings.NewReader(input), WithParseDates([]string{"Date"}))
+	if err != nil {
+		t.Fatalf("FromCSV: %v", err)
+	}
+
+	dtypes := df.DTypes()
+	if dtypes["Date"] != dtype.String {
+		t.Fatalf("Date dtype = %v, want String fallback", dtypes["Date"])
 	}
 }
 

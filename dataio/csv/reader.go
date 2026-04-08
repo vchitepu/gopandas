@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
@@ -162,10 +163,10 @@ func FromCSV(r io.Reader, opts ...CSVOption) (dataframe.DataFrame, error) {
 	for i, rc := range dataCols {
 		dt, ok := cfg.dtypeOverride[rc.name]
 		if !ok {
-			dt = inferColumnType(rc.values)
+			dt = inferColumnType(rc.values, cfg.parseDateCols[rc.name], cfg.dateFormats)
 		}
 
-		arr, err := buildArrowArray(alloc, rc.values, dt)
+		arr, err := buildArrowArray(alloc, rc.values, dt, cfg.dateFormats)
 		if err != nil {
 			return dataframe.DataFrame{}, fmt.Errorf("csv.FromCSV: column %q: %w", rc.name, err)
 		}
@@ -185,12 +186,13 @@ func FromCSV(r io.Reader, opts ...CSVOption) (dataframe.DataFrame, error) {
 	return dataframe.FromArrowWithIndex(rec, idx)
 }
 
-// inferColumnType tries int64 → float64 → string.
+// inferColumnType tries int64 → float64 → timestamp (optional) → string.
 // If the column is all integers but has any NA, promote to float64.
-func inferColumnType(values []any) dtype.DType {
+func inferColumnType(values []any, tryDate bool, dateFormats []string) dtype.DType {
 	hasNull := false
 	allInt := true
 	allFloat := true
+	allDate := tryDate
 
 	for _, v := range values {
 		if v == nil {
@@ -210,8 +212,13 @@ func inferColumnType(values []any) dtype.DType {
 				allFloat = false
 			}
 		}
+		if allDate {
+			if _, ok := parseDateString(s, dateFormats); !ok {
+				allDate = false
+			}
+		}
 		// If neither int nor float, it's string — can break early
-		if !allInt && !allFloat {
+		if !allInt && !allFloat && !allDate {
 			break
 		}
 	}
@@ -226,21 +233,35 @@ func inferColumnType(values []any) dtype.DType {
 	if allFloat {
 		return dtype.Float64
 	}
+	if allDate {
+		return dtype.Timestamp
+	}
 	return dtype.String
 }
 
 // buildArrowArray converts []any (string values or nil) into a typed Arrow array.
-func buildArrowArray(alloc memory.Allocator, values []any, dt dtype.DType) (arrow.Array, error) {
+func buildArrowArray(alloc memory.Allocator, values []any, dt dtype.DType, dateFormats []string) (arrow.Array, error) {
 	switch dt {
 	case dtype.Int64:
 		return buildInt64Array(alloc, values)
 	case dtype.Float64:
 		return buildFloat64Array(alloc, values)
+	case dtype.Timestamp:
+		return buildTimestampArray(alloc, values, dateFormats)
 	case dtype.String:
 		return buildStringArray(alloc, values)
 	default:
 		return nil, fmt.Errorf("unsupported dtype %v for CSV column", dt)
 	}
+}
+
+func parseDateString(s string, dateFormats []string) (time.Time, bool) {
+	for _, layout := range dateFormats {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC(), true
+		}
+	}
+	return time.Time{}, false
 }
 
 func buildInt64Array(alloc memory.Allocator, values []any) (arrow.Array, error) {
@@ -288,4 +309,26 @@ func buildStringArray(alloc memory.Allocator, values []any) (arrow.Array, error)
 		bldr.Append(v.(string))
 	}
 	return bldr.NewStringArray(), nil
+}
+
+func buildTimestampArray(alloc memory.Allocator, values []any, dateFormats []string) (arrow.Array, error) {
+	// Use microsecond timestamp in UTC to align with existing dtype.Timestamp handling.
+	dt := &arrow.TimestampType{Unit: arrow.Microsecond, TimeZone: "UTC"}
+	bldr := array.NewTimestampBuilder(alloc, dt)
+	defer bldr.Release()
+
+	for _, v := range values {
+		if v == nil {
+			bldr.AppendNull()
+			continue
+		}
+
+		t, ok := parseDateString(v.(string), dateFormats)
+		if !ok {
+			return nil, fmt.Errorf("cannot parse %q as timestamp", v)
+		}
+		bldr.Append(arrow.Timestamp(t.UnixMicro()))
+	}
+
+	return bldr.NewTimestampArray(), nil
 }

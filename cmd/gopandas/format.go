@@ -28,7 +28,7 @@ func inferFormat(path string) (string, error) {
 }
 
 // loadFile reads a data file and returns a DataFrame.
-func loadFile(path, format string) (dataframe.DataFrame, error) {
+func loadFile(path, format string, csvOpts ...csvio.CSVOption) (dataframe.DataFrame, error) {
 	switch format {
 	case "csv":
 		f, err := os.Open(path)
@@ -36,7 +36,7 @@ func loadFile(path, format string) (dataframe.DataFrame, error) {
 			return dataframe.DataFrame{}, fmt.Errorf("open %s: %w", path, err)
 		}
 		defer f.Close()
-		return csvio.FromCSV(f)
+		return csvio.FromCSV(f, csvOpts...)
 
 	case "json":
 		f, err := os.Open(path)

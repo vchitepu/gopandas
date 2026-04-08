@@ -6,24 +6,27 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/vchitepu/gopandas/dataframe"
+	csvio "github.com/vchitepu/gopandas/dataio/csv"
 	"github.com/vchitepu/gopandas/groupby"
 )
 
 // Flag variables for the read subcommand.
 var (
-	readHead     int
-	readTail     int
-	readDescribe bool
-	readShape    bool
-	readDTypes   bool
-	readSelect   string
-	readFilter   string
-	readGroupBy  string
-	readAgg      string
-	readSort     string
-	readSortDesc bool
-	readOutput   string
-	readFormat   string
+	readHead       int
+	readTail       int
+	readDescribe   bool
+	readShape      bool
+	readDTypes     bool
+	readSelect     string
+	readFilter     string
+	readGroupBy    string
+	readAgg        string
+	readSort       string
+	readSortDesc   bool
+	readOutput     string
+	readFormat     string
+	readParseDates string
+	readDateFormat string
 )
 
 var readCmd = &cobra.Command{
@@ -48,6 +51,8 @@ func init() {
 	readCmd.Flags().BoolVar(&readSortDesc, "sort-desc", false, "sort descending")
 	readCmd.Flags().StringVar(&readOutput, "output", "", "write result to file")
 	readCmd.Flags().StringVar(&readFormat, "format", "", "output format: csv, json, parquet (overrides extension)")
+	readCmd.Flags().StringVar(&readParseDates, "parse-dates", "", "comma-separated CSV columns to parse as dates")
+	readCmd.Flags().StringVar(&readDateFormat, "date-format", "", "CSV date format layout (Go time format), e.g. 01/02/2006")
 
 	rootCmd.AddCommand(readCmd)
 }
@@ -62,7 +67,20 @@ func runRead(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load the file
-	df, err := loadFile(path, format)
+	var csvOpts []csvio.CSVOption
+	if format == "csv" {
+		if readParseDates != "" {
+			cols := splitCSVList(readParseDates)
+			if len(cols) > 0 {
+				csvOpts = append(csvOpts, csvio.WithParseDates(cols))
+			}
+		}
+		if readDateFormat != "" {
+			csvOpts = append(csvOpts, csvio.WithDateFormats([]string{readDateFormat}))
+		}
+	}
+
+	df, err := loadFile(path, format, csvOpts...)
 	if err != nil {
 		return err
 	}
@@ -164,6 +182,18 @@ func runRead(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(out, df.Head(n).String())
 	return nil
+}
+
+func splitCSVList(s string) []string {
+	parts := strings.Split(s, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 func applyAgg(gb groupby.GroupBy, agg string) (dataframe.DataFrame, error) {

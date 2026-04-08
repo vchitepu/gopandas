@@ -34,6 +34,8 @@ func resetFlags() {
 	readSortDesc = false
 	readOutput = ""
 	readFormat = ""
+	readParseDates = ""
+	readDateFormat = ""
 
 	// Convert command flags
 	convertFrom = ""
@@ -157,6 +159,24 @@ func TestReadFilter(t *testing.T) {
 	}
 	if strings.Contains(out, "Bob") {
 		t.Errorf("expected output NOT to contain Bob, got:\n%s", out)
+	}
+}
+
+func TestReadParseDatesDTypes(t *testing.T) {
+	resetFlags()
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "dates.csv")
+	content := "Date,Description,Amount\n12/31/2025,Coffee,3.25\n12/30/2025,Lunch,15.00\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("failed to write temp csv: %v", err)
+	}
+
+	out, err := executeCommand("read", "--dtypes", "--parse-dates", "Date", path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out, "Date: timestamp") {
+		t.Errorf("expected Date dtype to be timestamp, got:\n%s", out)
 	}
 }
 
