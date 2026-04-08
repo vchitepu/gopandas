@@ -189,47 +189,50 @@ go build -o gopandas ./cmd/gopandas
 ### Read a file
 
 ```bash
-./gopandas read data.csv
-./gopandas read data.csv --head 10
-./gopandas read data.csv --shape
-./gopandas read data.csv --dtypes
-./gopandas read data.csv --describe
+gopandas read data.csv
+gopandas read data.csv --head 10
+gopandas read data.csv --shape
+gopandas read data.csv --dtypes
+gopandas read data.csv --describe
 ```
 
 ### Parse dates in CSV columns
 
 ```bash
-./gopandas read transactions.csv --parse-dates Date --dtypes
-./gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --dtypes
+gopandas read transactions.csv --parse-dates Date --dtypes
+gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --dtypes
+gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --filter "Date > '11/12/2025'"
 ```
+
+Tip: when filtering date columns, wrap date literals in quotes in the query string.
 
 ### Select/filter/sort from CLI
 
 ```bash
-./gopandas read data.csv --select name,salary --filter "salary > 80000" --sort salary --sort-desc
+gopandas read data.csv --select name,salary --filter "salary > 80000" --sort salary --sort-desc
 ```
 
 ### Group and aggregate
 
 ```bash
-./gopandas read data.csv --groupby city --agg mean
-./gopandas read data.csv --groupby city --agg count
+gopandas read data.csv --groupby city --agg mean
+gopandas read data.csv --groupby city --agg count
 ```
 
 ### Write transformed output
 
 ```bash
-./gopandas read data.csv --select name,age --output out.csv
-./gopandas read data.csv --filter "age >= 30" --output out.json --format json
+gopandas read data.csv --select name,age --output out.csv
+gopandas read data.csv --filter "age >= 30" --output out.json --format json
 ```
 
 ### Convert between formats
 
 ```bash
-./gopandas convert input.csv output.json
-./gopandas convert input.json output.csv
-./gopandas convert input.csv output.dat --from csv --to parquet
-./gopandas convert input.csv output.csv --select name,age
+gopandas convert input.csv output.json
+gopandas convert input.json output.csv
+gopandas convert input.csv output.dat --from csv --to parquet
+gopandas convert input.csv output.csv --select name,age
 ```
 
 ## Planned Features

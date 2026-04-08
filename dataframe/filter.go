@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vchitepu/gopandas/index"
@@ -118,6 +119,25 @@ func parseValue(s string) (any, error) {
 
 // compareValues compares a cell value against a query value using the given operator.
 func compareValues(cellVal any, op string, queryVal any) bool {
+	if ct, ok := cellVal.(time.Time); ok {
+		if qt, ok := toTime(queryVal); ok {
+			switch op {
+			case "==":
+				return ct.Equal(qt)
+			case "!=":
+				return !ct.Equal(qt)
+			case ">":
+				return ct.After(qt)
+			case ">=":
+				return ct.After(qt) || ct.Equal(qt)
+			case "<":
+				return ct.Before(qt)
+			case "<=":
+				return ct.Before(qt) || ct.Equal(qt)
+			}
+		}
+	}
+
 	// For == and != with string types, compare directly
 	if op == "==" {
 		return fmt.Sprintf("%v", cellVal) == fmt.Sprintf("%v", queryVal)
@@ -176,4 +196,27 @@ func toFloat64(v any) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func toTime(v any) (time.Time, bool) {
+	switch val := v.(type) {
+	case time.Time:
+		return val.UTC(), true
+	case string:
+		layouts := []string{
+			time.RFC3339,
+			"2006-01-02",
+			"01/02/2006",
+			"1/2/2006",
+			"2006/01/02",
+			"01-02-2006",
+			"1-2-2006",
+		}
+		for _, layout := range layouts {
+			if t, err := time.Parse(layout, val); err == nil {
+				return t.UTC(), true
+			}
+		}
+	}
+	return time.Time{}, false
 }

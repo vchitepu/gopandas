@@ -2,8 +2,12 @@ package dataframe
 
 import (
 	"testing"
+	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vchitepu/gopandas/arrowutil"
 	"github.com/vchitepu/gopandas/index"
 	"github.com/vchitepu/gopandas/series"
 )
@@ -127,5 +131,87 @@ func TestQuery_GreaterThanOrEqual(t *testing.T) {
 	v0, _ := result.At(0, "x")
 	if v0 != int64(20) {
 		t.Errorf("Query(x >= 20).At(0, x) = %v, want 20", v0)
+	}
+}
+
+func TestQuery_WithTimestampColumnDoesNotPanic(t *testing.T) {
+	alloc := memory.DefaultAllocator
+
+	dateVals := []time.Time{
+		time.Date(2025, 12, 30, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC),
+	}
+	dateArr := arrowutil.BuildTimestampArray(alloc, dateVals)
+	defer dateArr.Release()
+
+	amountArr := arrowutil.BuildInt64Array(alloc, []int64{10, 20})
+	defer amountArr.Release()
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "Amount", Type: amountArr.DataType()},
+		{Name: "Date", Type: dateArr.DataType()},
+	}, nil)
+	rec := array.NewRecord(schema, []arrow.Array{amountArr, dateArr}, 2)
+	defer rec.Release()
+
+	df, err := FromArrow(rec)
+	if err != nil {
+		t.Fatalf("FromArrow() error: %v", err)
+	}
+
+	result, err := df.Query("Amount > 0")
+	if err != nil {
+		t.Fatalf("Query() error: %v", err)
+	}
+
+	if result.Len() != 2 {
+		t.Fatalf("Query().Len() = %d, want 2", result.Len())
+	}
+
+	if got := result.DTypes()["Date"]; got.String() != "timestamp" {
+		t.Fatalf("Date dtype = %s, want timestamp", got)
+	}
+}
+
+func TestQuery_TimestampLiteralComparison(t *testing.T) {
+	alloc := memory.DefaultAllocator
+
+	dateVals := []time.Time{
+		time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC),
+	}
+	dateArr := arrowutil.BuildTimestampArray(alloc, dateVals)
+	defer dateArr.Release()
+
+	amountArr := arrowutil.BuildInt64Array(alloc, []int64{10, 20})
+	defer amountArr.Release()
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "Amount", Type: amountArr.DataType()},
+		{Name: "Date", Type: dateArr.DataType()},
+	}, nil)
+	rec := array.NewRecord(schema, []arrow.Array{amountArr, dateArr}, 2)
+	defer rec.Release()
+
+	df, err := FromArrow(rec)
+	if err != nil {
+		t.Fatalf("FromArrow() error: %v", err)
+	}
+
+	result, err := df.Query("Date > '06/12/2025'")
+	if err != nil {
+		t.Fatalf("Query() error: %v", err)
+	}
+
+	if result.Len() != 1 {
+		t.Fatalf("Query().Len() = %d, want 1", result.Len())
+	}
+
+	gotDate, err := result.At(0, "Date")
+	if err != nil {
+		t.Fatalf("At() error: %v", err)
+	}
+	if gotDate != time.Date(2025, 12, 31, 0, 0, 0, 0, time.UTC) {
+		t.Fatalf("Date = %v, want 2025-12-31", gotDate)
 	}
 }

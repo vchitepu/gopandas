@@ -3,6 +3,7 @@ package series
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -73,6 +74,8 @@ func inferDTypeFromAny(values []any) dtype.DType {
 			return dtype.String
 		case bool:
 			return dtype.Bool
+		case time.Time:
+			return dtype.Timestamp
 		}
 	}
 	return dtype.String // default
