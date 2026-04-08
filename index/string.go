@@ -7,6 +7,8 @@ type StringIndex struct {
 	name   string
 }
 
+// NewStringIndex creates a StringIndex from the given labels.
+// Duplicate labels are allowed; Loc returns the position of the first occurrence.
 func NewStringIndex(labels []string, name string) *StringIndex {
 	cp := make([]string, len(labels))
 	copy(cp, labels)

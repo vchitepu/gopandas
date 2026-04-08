@@ -9,6 +9,9 @@ type MultiIndex struct {
 	name   string
 }
 
+// NewMultiIndex creates a MultiIndex from a slice of level arrays.
+// All levels must have the same length (number of rows).
+// Panics if levels is empty or if any level has a different length than levels[0].
 func NewMultiIndex(levels [][]any, name string) *MultiIndex {
 	if len(levels) == 0 {
 		panic("index: NewMultiIndex called with no levels")
@@ -41,6 +44,11 @@ func (m *MultiIndex) Labels() []any {
 	return out
 }
 
+// Loc finds the first row whose key tuple matches label.
+// label must be a []any of length equal to the number of levels.
+// Returns (-1, false) if not found, wrong type, or wrong number of levels.
+// NOTE: This is an O(n·k) linear scan (n=rows, k=levels). For large indexes,
+// consider pre-building a composite key map.
 func (m *MultiIndex) Loc(label any) (int, bool) {
 	key, ok := label.([]any)
 	if !ok {

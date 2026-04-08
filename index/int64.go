@@ -7,6 +7,8 @@ type Int64Index struct {
 	name   string
 }
 
+// NewInt64Index creates an Int64Index from the given labels.
+// Duplicate labels are allowed; Loc returns the position of the first occurrence.
 func NewInt64Index(labels []int64, name string) *Int64Index {
 	cp := make([]int64, len(labels))
 	copy(cp, labels)
@@ -29,6 +31,8 @@ func (idx *Int64Index) Labels() []any {
 	return out
 }
 
+// Loc returns the position of the given label. label must be of type int64;
+// passing an untyped int returns (-1, false).
 func (idx *Int64Index) Loc(label any) (int, bool) {
 	v, ok := label.(int64)
 	if !ok {
