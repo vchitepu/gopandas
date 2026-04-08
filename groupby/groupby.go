@@ -2,9 +2,13 @@ package groupby
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vinaychitepu/gopandas/series"
 )
 
 // GroupBy holds the result of grouping a DataFrame by one or more key columns.
@@ -59,4 +63,27 @@ func (gb GroupBy) Groups() map[string][]int {
 		result[k] = cp
 	}
 	return result
+}
+
+// sortedGroupKeys returns the group keys in sorted order.
+func (gb GroupBy) sortedGroupKeys() []string {
+	keys := make([]string, 0, len(gb.groups))
+	for k := range gb.groups {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// Size returns a Series[int64] indexed by group keys, where each value is the number of rows in that group.
+func (gb GroupBy) Size() series.Series[int64] {
+	keys := gb.sortedGroupKeys()
+	labels := make([]string, len(keys))
+	values := make([]int64, len(keys))
+	for i, k := range keys {
+		labels[i] = k
+		values[i] = int64(len(gb.groups[k]))
+	}
+	idx := index.NewStringIndex(labels, "")
+	return series.New[int64](memory.DefaultAllocator, values, idx, "size")
 }

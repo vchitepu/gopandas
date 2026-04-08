@@ -113,3 +113,17 @@ func TestGroups_SingleKey(t *testing.T) {
 		t.Errorf("Groups()[Sales] = %v, want [1, 3]", sales)
 	}
 }
+
+func TestSize(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	sizes := gb.Size()
+	engVal, engNull := sizes.Loc("Eng")
+	if engNull || engVal != int64(3) {
+		t.Errorf("Size().Loc(Eng) = %v (null=%v), want 3", engVal, engNull)
+	}
+	salesVal, salesNull := sizes.Loc("Sales")
+	if salesNull || salesVal != int64(2) {
+		t.Errorf("Size().Loc(Sales) = %v (null=%v), want 2", salesVal, salesNull)
+	}
+}
