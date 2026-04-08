@@ -158,6 +158,22 @@ if err != nil {
 fmt.Println(df.DTypes()) // Date => timestamp
 ```
 
+### 6) Builder / Fluent API
+
+```go
+result, err := df.Build().
+	Select("name", "age", "salary").
+	Query("age >= 30").
+	SortBy([]string{"salary"}, []bool{false}). // descending
+	Head(5).
+	Result()
+if err != nil {
+	panic(err)
+}
+
+fmt.Println(result.String())
+```
+
 ## CLI Usage
 
 Build once:

@@ -112,6 +112,37 @@ func TestBuilder_HappyPath_FilterTailChain(t *testing.T) {
 	}
 }
 
+func TestBuilder_Tail(t *testing.T) {
+	df := builderTestDF(t)
+
+	got, err := df.Build().
+		Tail(2).
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	if got.Len() != 2 {
+		t.Fatalf("got.Len() = %d, want 2", got.Len())
+	}
+
+	v0, err := got.At(0, "a")
+	if err != nil {
+		t.Fatalf("got.At(0, a) error: %v", err)
+	}
+	if v0 != int64(2) {
+		t.Fatalf("got.At(0, a) = %v, want 2", v0)
+	}
+
+	v1, err := got.At(1, "a")
+	if err != nil {
+		t.Fatalf("got.At(1, a) error: %v", err)
+	}
+	if v1 != int64(3) {
+		t.Fatalf("got.At(1, a) = %v, want 3", v1)
+	}
+}
+
 func TestBuilder_ErrorPath_FilterShortCircuit(t *testing.T) {
 	df := builderTestDF(t)
 
