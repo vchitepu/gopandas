@@ -3,6 +3,7 @@ package dataframe
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/dtype"
@@ -143,4 +144,78 @@ func (df DataFrame) DTypes() map[string]dtype.DType {
 // Index returns the Index of the DataFrame.
 func (df DataFrame) Index() index.Index {
 	return df.index
+}
+
+// String returns a tabular string representation of the DataFrame.
+func (df DataFrame) String() string {
+	if len(df.columns) == 0 || df.Len() == 0 {
+		return "Empty DataFrame"
+	}
+
+	nRows := df.Len()
+	labels := df.index.Labels()
+
+	// Compute column widths: index column + data columns
+	idxWidth := 5 // minimum width
+	for i := 0; i < nRows; i++ {
+		w := len(fmt.Sprintf("%v", labels[i]))
+		if w > idxWidth {
+			idxWidth = w
+		}
+	}
+
+	colWidths := make([]int, len(df.columns))
+	for j, col := range df.columns {
+		colWidths[j] = len(col)
+		s := df.data[col]
+		for i := 0; i < nRows; i++ {
+			val, isNull := s.At(i)
+			var str string
+			if isNull {
+				str = "NaN"
+			} else {
+				str = fmt.Sprintf("%v", val)
+			}
+			if len(str) > colWidths[j] {
+				colWidths[j] = len(str)
+			}
+		}
+	}
+
+	var b strings.Builder
+	// Header
+	b.WriteString(padRight("", idxWidth))
+	for j, col := range df.columns {
+		b.WriteString("  ")
+		b.WriteString(padRight(col, colWidths[j]))
+	}
+	b.WriteString("\n")
+
+	// Rows
+	for i := 0; i < nRows; i++ {
+		b.WriteString(padRight(fmt.Sprintf("%v", labels[i]), idxWidth))
+		for j, col := range df.columns {
+			b.WriteString("  ")
+			s := df.data[col]
+			val, isNull := s.At(i)
+			var str string
+			if isNull {
+				str = "NaN"
+			} else {
+				str = fmt.Sprintf("%v", val)
+			}
+			b.WriteString(padRight(str, colWidths[j]))
+		}
+		b.WriteString("\n")
+	}
+
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// padRight pads a string with spaces to the given width.
+func padRight(s string, w int) string {
+	if len(s) >= w {
+		return s
+	}
+	return s + strings.Repeat(" ", w-len(s))
 }

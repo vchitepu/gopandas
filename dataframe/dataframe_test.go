@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/vinaychitepu/gopandas/dtype"
@@ -88,5 +89,40 @@ func TestMetadata(t *testing.T) {
 	idx := df.Index()
 	if idx.Len() != 3 {
 		t.Errorf("Index().Len() = %d, want 3", idx.Len())
+	}
+}
+
+// containsAll checks that s contains all substrings.
+func containsAll(s string, subs ...string) bool {
+	for _, sub := range subs {
+		if !strings.Contains(s, sub) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestString(t *testing.T) {
+	df, err := New(map[string]any{
+		"name": []string{"Alice", "Bob"},
+		"age":  []int64{30, 25},
+	})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+	out := df.String()
+	if !containsAll(out, "Alice", "Bob", "30", "25", "age", "name") {
+		t.Errorf("String() missing expected content:\n%s", out)
+	}
+}
+
+func TestString_Empty(t *testing.T) {
+	df, err := New(map[string]any{})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+	out := df.String()
+	if out != "Empty DataFrame" {
+		t.Errorf("String() = %q, want %q", out, "Empty DataFrame")
 	}
 }
