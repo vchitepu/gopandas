@@ -276,3 +276,28 @@ func TestMin(t *testing.T) {
 		t.Errorf("Min() Sales salary = %v, want 80000", salesSalary)
 	}
 }
+
+func TestMax(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Max()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng max salary: max(100000, 120000, 110000) = 120000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 120000.0 {
+		t.Errorf("Max() Eng salary = %v, want 120000", engSalary)
+	}
+	// Sales max salary: max(80000, 90000) = 90000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 90000.0 {
+		t.Errorf("Max() Sales salary = %v, want 90000", salesSalary)
+	}
+}

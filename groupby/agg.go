@@ -167,3 +167,19 @@ func (gb GroupBy) Min() (dataframe.DataFrame, error) {
 		return m
 	})
 }
+
+// Max returns a DataFrame with the maximum of each numeric column per group.
+func (gb GroupBy) Max() (dataframe.DataFrame, error) {
+	return gb.aggregateNumeric(func(vals []float64) float64 {
+		if len(vals) == 0 {
+			return math.NaN()
+		}
+		m := vals[0]
+		for _, v := range vals[1:] {
+			if v > m {
+				m = v
+			}
+		}
+		return m
+	})
+}
