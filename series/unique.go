@@ -5,8 +5,8 @@ import (
 	"sort"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // Unique returns a new Series containing only the unique values, preserving first-appearance order.

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // ToJSON writes the DataFrame to w in JSON format.

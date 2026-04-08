@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 func TestInferDType_Int64(t *testing.T) {

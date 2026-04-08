@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/arrowutil"
 )
 
 func TestBuildInt64Array(t *testing.T) {

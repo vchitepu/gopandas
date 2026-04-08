@@ -2,8 +2,8 @@ package series
 
 import (
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // DropNA returns a new Series with all null values removed.

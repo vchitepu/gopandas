@@ -5,8 +5,8 @@ import (
 	"math"
 	"strings"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 // aggFunc is a function that aggregates a slice of float64 values into a single float64.

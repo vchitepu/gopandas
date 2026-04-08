@@ -5,8 +5,8 @@ import (
 	"sort"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/index"
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // SortBy sorts the DataFrame by one or more columns.

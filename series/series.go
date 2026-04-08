@@ -6,9 +6,9 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/dtype"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // Series is a single named column backed by an Apache Arrow array with label-based indexing.

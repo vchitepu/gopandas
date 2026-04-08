@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/vinaychitepu/gopandas/dataio/csv"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dataio/csv"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 func TestFromCSV_File(t *testing.T) {

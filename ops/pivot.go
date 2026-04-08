@@ -5,7 +5,7 @@ import (
 	"math"
 	"sort"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // Pivot reshapes a long DataFrame to wide format.

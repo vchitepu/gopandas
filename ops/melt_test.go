@@ -3,7 +3,7 @@ package ops
 import (
 	"testing"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 func TestMelt_Basic(t *testing.T) {

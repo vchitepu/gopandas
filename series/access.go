@@ -2,7 +2,7 @@ package series
 
 import (
 	"github.com/apache/arrow-go/v18/arrow"
-	"github.com/vinaychitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/arrowutil"
 )
 
 // At returns the value at positional index i and a boolean indicating if the value is null.

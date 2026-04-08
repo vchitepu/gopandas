@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // Merge performs an SQL-style join of two DataFrames on the specified key columns.

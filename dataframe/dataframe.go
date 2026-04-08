@@ -7,9 +7,9 @@ import (
 
 	arrowlib "github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/dtype"
-	"github.com/vinaychitepu/gopandas/index"
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // DataFrame is a two-dimensional, column-oriented data structure with labeled rows and columns.

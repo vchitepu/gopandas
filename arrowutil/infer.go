@@ -7,7 +7,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 // InferDType maps an Arrow array's type to a gopandas DType.

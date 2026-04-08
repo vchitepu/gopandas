@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 func TestPivot_Basic(t *testing.T) {

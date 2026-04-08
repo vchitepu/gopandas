@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // Transpose transposes a DataFrame: column names become "index" column values,

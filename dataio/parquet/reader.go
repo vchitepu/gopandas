@@ -10,7 +10,7 @@ import (
 	pq "github.com/apache/arrow-go/v18/parquet"
 	"github.com/apache/arrow-go/v18/parquet/file"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // FromParquet reads a Parquet file from the given ReaderAtSeeker and returns a DataFrame.

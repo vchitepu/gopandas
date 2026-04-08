@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // Concat vertically concatenates multiple DataFrames.

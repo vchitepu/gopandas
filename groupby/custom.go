@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // namedAggFuncs maps function name strings to aggFunc implementations.

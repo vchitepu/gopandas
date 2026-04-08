@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/vinaychitepu/gopandas/dataframe"
-	"github.com/vinaychitepu/gopandas/groupby"
+	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/groupby"
 )
 
 // Flag variables for the read subcommand.

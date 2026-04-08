@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/dataframe"
-	"github.com/vinaychitepu/gopandas/index"
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // GroupBy holds the result of grouping a DataFrame by one or more key columns.

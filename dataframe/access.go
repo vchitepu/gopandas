@@ -3,7 +3,7 @@ package dataframe
 import (
 	"fmt"
 
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // Col returns the named column as a *Series[any].

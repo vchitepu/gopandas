@@ -3,7 +3,7 @@ package ops
 import (
 	"testing"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 func TestConcat_TwoFrames(t *testing.T) {

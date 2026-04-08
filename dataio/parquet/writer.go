@@ -7,8 +7,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
-	"github.com/vinaychitepu/gopandas/dataframe"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 // ToParquet writes the given DataFrame to the writer in Parquet format.

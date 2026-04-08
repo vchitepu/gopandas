@@ -8,7 +8,7 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/apache/arrow-go/v18/parquet/pqarrow"
-	"github.com/vinaychitepu/gopandas/dataio/parquet"
+	"github.com/vchitepu/gopandas/dataio/parquet"
 )
 
 // writeTestParquet creates a Parquet buffer with 3 columns (name, age, score) and 3 rows.

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/index"
 )
 
 func TestSum_Int64(t *testing.T) {

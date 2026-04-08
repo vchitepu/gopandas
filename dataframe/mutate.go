@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/dtype"
-	"github.com/vinaychitepu/gopandas/index"
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // WithColumn returns a new DataFrame with the given column added or replaced.

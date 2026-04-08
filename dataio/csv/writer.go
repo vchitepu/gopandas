@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // ToCSV writes the DataFrame to w in CSV format.

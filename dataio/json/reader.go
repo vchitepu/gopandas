@@ -6,7 +6,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // FromJSON reads JSON data from the given io.Reader and returns a DataFrame.

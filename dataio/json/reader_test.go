@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 func TestFromJSON_Records(t *testing.T) {

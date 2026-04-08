@@ -1,7 +1,7 @@
 package csv
 
 import (
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/dtype"
 )
 
 // csvConfig holds all configuration for CSV reading/writing.

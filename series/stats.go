@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/apache/arrow-go/v18/arrow/array"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/dtype"
 	"gonum.org/v1/gonum/stat"
 )
 

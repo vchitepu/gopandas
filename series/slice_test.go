@@ -5,7 +5,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/index"
 )
 
 func TestHead(t *testing.T) {

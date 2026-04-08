@@ -5,8 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/index"
-	"github.com/vinaychitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
 )
 
 // sliceRows returns a new DataFrame with rows [start, end).

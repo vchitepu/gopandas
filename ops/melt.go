@@ -3,7 +3,7 @@ package ops
 import (
 	"fmt"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dataframe"
 )
 
 // Melt unpivots a wide DataFrame to long format.

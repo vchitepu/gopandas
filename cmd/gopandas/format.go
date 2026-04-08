@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vinaychitepu/gopandas/dataframe"
-	csvio "github.com/vinaychitepu/gopandas/dataio/csv"
-	jsonio "github.com/vinaychitepu/gopandas/dataio/json"
-	parquetio "github.com/vinaychitepu/gopandas/dataio/parquet"
+	"github.com/vchitepu/gopandas/dataframe"
+	csvio "github.com/vchitepu/gopandas/dataio/csv"
+	jsonio "github.com/vchitepu/gopandas/dataio/json"
+	parquetio "github.com/vchitepu/gopandas/dataio/parquet"
 )
 
 // inferFormat returns the file format based on the file extension.

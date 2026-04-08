@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	gojson "github.com/vinaychitepu/gopandas/dataio/json"
+	gojson "github.com/vchitepu/gopandas/dataio/json"
 )
 
 func TestFromJSON_File(t *testing.T) {

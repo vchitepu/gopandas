@@ -6,9 +6,9 @@ import (
 	"strconv"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/dtype"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // Map applies fn to every element and returns a new Series of the same type.

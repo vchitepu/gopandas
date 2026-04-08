@@ -9,9 +9,9 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/dataframe"
-	"github.com/vinaychitepu/gopandas/dtype"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // FromCSV reads CSV data from the given io.Reader and returns a DataFrame.

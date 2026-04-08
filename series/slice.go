@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
-	"github.com/vinaychitepu/gopandas/arrowutil"
-	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/arrowutil"
+	"github.com/vchitepu/gopandas/index"
 )
 
 // Head returns a new Series with the first n elements.

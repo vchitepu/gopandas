@@ -1,4 +1,4 @@
-module github.com/vinaychitepu/gopandas
+module github.com/vchitepu/gopandas
 
 go 1.25.1
 

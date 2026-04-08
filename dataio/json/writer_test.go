@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	gojson "github.com/vinaychitepu/gopandas/dataio/json"
+	gojson "github.com/vchitepu/gopandas/dataio/json"
 )
 
 func TestToJSON_Records(t *testing.T) {
