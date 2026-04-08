@@ -160,6 +160,8 @@ fmt.Println(df.DTypes()) // Date => timestamp
 
 ### 6) Builder / Fluent API
 
+Use the builder when you want to chain DataFrame operations in one pipeline without handling intermediate errors at each step.
+
 ```go
 result, err := df.Build().
 	Select("name", "age", "salary").
@@ -173,6 +175,8 @@ if err != nil {
 
 fmt.Println(result.String())
 ```
+
+Builder calls short-circuit on the first error: once any step fails, subsequent chained calls are no-ops, and `Result()` returns that original error.
 
 ## CLI Usage
 
