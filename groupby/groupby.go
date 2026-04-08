@@ -49,3 +49,14 @@ func (gb *GroupBy) compositeKey(row int) string {
 func (gb GroupBy) NGroups() int {
 	return len(gb.groups)
 }
+
+// Groups returns a map from composite key to a copy of the row positions in that group.
+func (gb GroupBy) Groups() map[string][]int {
+	result := make(map[string][]int, len(gb.groups))
+	for k, v := range gb.groups {
+		cp := make([]int, len(v))
+		copy(cp, v)
+		result[k] = cp
+	}
+	return result
+}
