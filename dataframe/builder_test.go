@@ -1,6 +1,12 @@
 package dataframe
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vchitepu/gopandas/index"
+	"github.com/vchitepu/gopandas/series"
+)
 
 func builderTestDF(t *testing.T) DataFrame {
 	t.Helper()
@@ -74,17 +80,84 @@ func TestBuilder_HappyPath_SelectQuerySortByHead(t *testing.T) {
 	}
 }
 
+func TestBuilder_HappyPath_FilterTailChain(t *testing.T) {
+	df := builderTestDF(t)
+
+	mask := series.New[bool](
+		memory.DefaultAllocator,
+		[]bool{true, false, true},
+		index.NewRangeIndex(df.Len(), ""),
+		"mask",
+	)
+
+	got, err := df.Build().
+		Filter(mask).
+		Tail(1).
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	if got.Len() != 1 {
+		t.Fatalf("got.Len() = %d, want 1", got.Len())
+	}
+
+	v, err := got.At(0, "a")
+	if err != nil {
+		t.Fatalf("got.At(0, a) error: %v", err)
+	}
+	if v != int64(3) {
+		t.Fatalf("got.At(0, a) = %v, want 3", v)
+	}
+}
+
+func TestBuilder_ErrorPath_FilterShortCircuit(t *testing.T) {
+	df := builderTestDF(t)
+
+	badMask := series.New[bool](
+		memory.DefaultAllocator,
+		[]bool{true, false},
+		index.NewRangeIndex(2, ""),
+		"mask",
+	)
+
+	got, err := df.Build().
+		Filter(badMask).
+		Tail(1).
+		Result()
+	if err == nil {
+		t.Fatal("builder Result() error = nil, want non-nil")
+	}
+
+	if err.Error() != "dataframe.Filter: mask length 2 != DataFrame length 3" {
+		t.Fatalf("builder Result() error = %q, want %q", err.Error(), "dataframe.Filter: mask length 2 != DataFrame length 3")
+	}
+
+	if got.String() != df.String() {
+		t.Fatalf("error short-circuit mutated dataframe:\ngot:\n%s\nwant:\n%s", got.String(), df.String())
+	}
+}
+
 func TestBuilder_ErrorShortCircuit(t *testing.T) {
 	df := builderTestDF(t)
 
+	_, wantErr := df.Select("does_not_exist")
+	if wantErr == nil {
+		t.Fatal("df.Select(does_not_exist) error = nil, want non-nil")
+	}
+
 	got, err := df.Build().
 		Select("does_not_exist").
-		Query("a > 1").
-		SortBy([]string{"a"}, []bool{true}).
+		Query("a >>> 1").
+		SortBy([]string{"a"}, []bool{}).
 		Head(1).
 		Result()
 	if err == nil {
 		t.Fatal("builder Result() error = nil, want non-nil")
+	}
+
+	if err.Error() != wantErr.Error() {
+		t.Fatalf("builder Result() error = %q, want first error %q", err.Error(), wantErr.Error())
 	}
 
 	if got.String() != df.String() {
