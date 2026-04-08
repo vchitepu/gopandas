@@ -2,7 +2,10 @@ module github.com/vinaychitepu/gopandas
 
 go 1.25.1
 
-require github.com/apache/arrow-go/v18 v18.5.2
+require (
+	github.com/apache/arrow-go/v18 v18.5.2
+	gonum.org/v1/gonum v0.17.0
+)
 
 require (
 	github.com/goccy/go-json v0.10.5 // indirect
@@ -16,5 +19,4 @@ require (
 	golang.org/x/telemetry v0.0.0-20260209163413-e7419c687ee4 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	gonum.org/v1/gonum v0.17.0 // indirect
 )

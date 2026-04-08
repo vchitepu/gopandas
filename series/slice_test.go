@@ -3,6 +3,7 @@ package series
 import (
 	"testing"
 
+	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/index"
 )
@@ -202,4 +203,37 @@ func TestFilterPanicsOnLengthMismatch(t *testing.T) {
 	idx := index.NewRangeIndex(3, "")
 	s := New[int64](memory.DefaultAllocator, []int64{1, 2, 3}, idx, "x")
 	s.Filter([]bool{true, false})
+}
+
+func TestFilterPreservesNulls(t *testing.T) {
+	// Build an int64 array with a null at position 1
+	alloc := memory.DefaultAllocator
+	bldr := array.NewInt64Builder(alloc)
+	bldr.Append(10)
+	bldr.AppendNull()
+	bldr.Append(30)
+	arr := bldr.NewInt64Array()
+	bldr.Release()
+
+	idx := index.NewRangeIndex(3, "")
+	s := FromArrow(arr, idx, "x")
+
+	// Mask keeps positions 0 and 1 (null)
+	f := s.Filter([]bool{true, true, false})
+
+	if f.Len() != 2 {
+		t.Fatalf("Filter().Len() = %d, want 2", f.Len())
+	}
+	// Position 0 is non-null, value 10
+	if f.IsNull(0) {
+		t.Error("Filter()[0] IsNull = true, want false")
+	}
+	v, isNull := f.At(0)
+	if isNull || v != int64(10) {
+		t.Errorf("Filter()[0] = (%v, %v), want (10, false)", v, isNull)
+	}
+	// Position 1 was null — must remain null
+	if !f.IsNull(1) {
+		t.Error("Filter()[1] IsNull = false, want true (null must be preserved)")
+	}
 }
