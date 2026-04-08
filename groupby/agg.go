@@ -239,3 +239,8 @@ func (gb GroupBy) aggregateFirstLast(last bool) (dataframe.DataFrame, error) {
 func (gb GroupBy) First() (dataframe.DataFrame, error) {
 	return gb.aggregateFirstLast(false)
 }
+
+// Last returns a DataFrame with the last row from each group. Includes ALL columns.
+func (gb GroupBy) Last() (dataframe.DataFrame, error) {
+	return gb.aggregateFirstLast(true)
+}

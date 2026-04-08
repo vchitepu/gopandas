@@ -404,3 +404,39 @@ func TestFirst(t *testing.T) {
 		t.Errorf("First() Sales name = %v, want Bob", salesName)
 	}
 }
+
+func TestLast(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Last()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Last() rows = %d, want 2", rows)
+	}
+	// Eng last: row 4 -> Eve, 110000
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != "Eve" {
+		t.Errorf("Last() Eng name = %v, want Eve", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 110000.0 {
+		t.Errorf("Last() Eng salary = %v, want 110000", engSalary)
+	}
+	// Sales last: row 3 -> Diana, 90000
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != "Diana" {
+		t.Errorf("Last() Sales name = %v, want Diana", salesName)
+	}
+}
