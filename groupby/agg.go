@@ -168,6 +168,29 @@ func (gb GroupBy) Min() (dataframe.DataFrame, error) {
 	})
 }
 
+// Std returns a DataFrame with the sample standard deviation (ddof=1) of each numeric column per group.
+// Single-element groups produce NaN.
+func (gb GroupBy) Std() (dataframe.DataFrame, error) {
+	return gb.aggregateNumeric(func(vals []float64) float64 {
+		n := len(vals)
+		if n < 2 {
+			return math.NaN()
+		}
+		var sum float64
+		for _, v := range vals {
+			sum += v
+		}
+		mean := sum / float64(n)
+		var variance float64
+		for _, v := range vals {
+			d := v - mean
+			variance += d * d
+		}
+		variance /= float64(n - 1)
+		return math.Sqrt(variance)
+	})
+}
+
 // Max returns a DataFrame with the maximum of each numeric column per group.
 func (gb GroupBy) Max() (dataframe.DataFrame, error) {
 	return gb.aggregateNumeric(func(vals []float64) float64 {

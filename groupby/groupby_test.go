@@ -1,6 +1,7 @@
 package groupby
 
 import (
+	"math"
 	"testing"
 
 	"github.com/vinaychitepu/gopandas/dataframe"
@@ -299,5 +300,70 @@ func TestMax(t *testing.T) {
 	}
 	if salesSalary != 90000.0 {
 		t.Errorf("Max() Sales salary = %v, want 90000", salesSalary)
+	}
+}
+
+func TestStd(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Std()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng salaries: 100000, 120000, 110000 -> mean=110000
+	// variance = ((100000-110000)^2 + (120000-110000)^2 + (110000-110000)^2) / (3-1)
+	//          = (1e8 + 1e8 + 0) / 2 = 1e8
+	// std = sqrt(1e8) = 10000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	engStd, ok := engSalary.(float64)
+	if !ok {
+		t.Fatalf("Std() Eng salary type = %T, want float64", engSalary)
+	}
+	if math.Abs(engStd-10000.0) > 0.01 {
+		t.Errorf("Std() Eng salary = %v, want 10000", engStd)
+	}
+	// Sales salaries: 80000, 90000 -> mean=85000
+	// variance = ((80000-85000)^2 + (90000-85000)^2) / (2-1) = 5e7
+	// std = sqrt(5e7) ≈ 7071.07
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	salesStd, ok := salesSalary.(float64)
+	if !ok {
+		t.Fatalf("Std() Sales salary type = %T, want float64", salesSalary)
+	}
+	if math.Abs(salesStd-7071.07) > 0.1 {
+		t.Errorf("Std() Sales salary = %v, want ~7071.07", salesStd)
+	}
+}
+
+func TestStd_SingleElement(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "B"},
+		"val": []float64{10.0, 20.0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	result, err := gb.Std()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Single element groups produce NaN
+	aVal, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	aStd, ok := aVal.(float64)
+	if !ok {
+		t.Fatalf("Std() A val type = %T, want float64", aVal)
+	}
+	if !math.IsNaN(aStd) {
+		t.Errorf("Std() single element = %v, want NaN", aStd)
 	}
 }
