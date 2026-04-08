@@ -21,8 +21,10 @@ func NewInt64Index(labels []int64, name string) *Int64Index {
 	return &Int64Index{labels: cp, lookup: lookup, name: name}
 }
 
+// Len returns the number of labels in the index.
 func (idx *Int64Index) Len() int { return len(idx.labels) }
 
+// Labels returns index labels as a []any slice.
 func (idx *Int64Index) Labels() []any {
 	out := make([]any, len(idx.labels))
 	for i, l := range idx.labels {
@@ -45,6 +47,7 @@ func (idx *Int64Index) Loc(label any) (int, bool) {
 	return pos, true
 }
 
+// Slice returns a new Int64Index containing labels in [start, end).
 func (idx *Int64Index) Slice(start, end int) Index {
 	if start < 0 {
 		start = 0
@@ -58,4 +61,5 @@ func (idx *Int64Index) Slice(start, end int) Index {
 	return NewInt64Index(idx.labels[start:end], idx.name)
 }
 
+// Name returns the index name.
 func (idx *Int64Index) Name() string { return idx.name }

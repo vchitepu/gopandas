@@ -17,8 +17,10 @@ func NewRangeIndex(n int, name string) *RangeIndex {
 	return &RangeIndex{n: n, name: name}
 }
 
+// Len returns the number of labels in the index.
 func (r *RangeIndex) Len() int { return r.n }
 
+// Labels returns index labels as integers from 0 to Len()-1.
 func (r *RangeIndex) Labels() []any {
 	out := make([]any, r.n)
 	for i := range out {
@@ -27,6 +29,7 @@ func (r *RangeIndex) Labels() []any {
 	return out
 }
 
+// Loc returns the position of the given label.
 func (r *RangeIndex) Loc(label any) (int, bool) {
 	v, ok := label.(int)
 	if !ok {
@@ -54,4 +57,5 @@ func (r *RangeIndex) Slice(start, end int) Index {
 	return NewRangeIndex(end-start, r.name)
 }
 
+// Name returns the index name.
 func (r *RangeIndex) Name() string { return r.name }

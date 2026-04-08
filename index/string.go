@@ -21,8 +21,10 @@ func NewStringIndex(labels []string, name string) *StringIndex {
 	return &StringIndex{labels: cp, lookup: lookup, name: name}
 }
 
+// Len returns the number of labels in the index.
 func (s *StringIndex) Len() int { return len(s.labels) }
 
+// Labels returns index labels as a []any slice.
 func (s *StringIndex) Labels() []any {
 	out := make([]any, len(s.labels))
 	for i, l := range s.labels {
@@ -31,6 +33,7 @@ func (s *StringIndex) Labels() []any {
 	return out
 }
 
+// Loc returns the position of the given label.
 func (s *StringIndex) Loc(label any) (int, bool) {
 	v, ok := label.(string)
 	if !ok {
@@ -43,6 +46,7 @@ func (s *StringIndex) Loc(label any) (int, bool) {
 	return pos, true
 }
 
+// Slice returns a new StringIndex containing labels in [start, end).
 func (s *StringIndex) Slice(start, end int) Index {
 	if start < 0 {
 		start = 0
@@ -56,4 +60,5 @@ func (s *StringIndex) Slice(start, end int) Index {
 	return NewStringIndex(s.labels[start:end], s.name)
 }
 
+// Name returns the index name.
 func (s *StringIndex) Name() string { return s.name }

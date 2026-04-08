@@ -4,13 +4,20 @@ package dtype
 type DType int
 
 const (
-	Invalid    DType = iota // zero value, represents an unknown or unset type
-	Int64                   // 64-bit signed integer
-	Float64                 // 64-bit IEEE 754 floating point
-	String                  // variable-length UTF-8 string (NOTE: this name shadows the Stringer method inside the package; use dtype.String externally)
-	Bool                    // boolean true/false
-	Timestamp               // nanosecond-precision timestamp (UTC)
-	Dictionary              // categorical / dictionary-encoded
+	// Invalid represents an unknown or unset data type.
+	Invalid DType = iota // zero value, represents an unknown or unset type
+	// Int64 represents a 64-bit signed integer type.
+	Int64 // 64-bit signed integer
+	// Float64 represents a 64-bit floating-point type.
+	Float64 // 64-bit IEEE 754 floating point
+	// String represents a variable-length UTF-8 string type.
+	String // variable-length UTF-8 string (NOTE: this name shadows the Stringer method inside the package; use dtype.String externally)
+	// Bool represents a boolean type.
+	Bool // boolean true/false
+	// Timestamp represents a nanosecond-precision UTC timestamp type.
+	Timestamp // nanosecond-precision timestamp (UTC)
+	// Dictionary represents a categorical dictionary-encoded type.
+	Dictionary // categorical / dictionary-encoded
 )
 
 // String returns the lowercase name of the DType.

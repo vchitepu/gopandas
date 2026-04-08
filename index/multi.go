@@ -30,8 +30,10 @@ func NewMultiIndex(levels [][]any, name string) *MultiIndex {
 	return &MultiIndex{levels: cp, nrows: nrows, name: name}
 }
 
+// Len returns the number of rows in the index.
 func (m *MultiIndex) Len() int { return m.nrows }
 
+// Labels returns row labels as tuples of level values.
 func (m *MultiIndex) Labels() []any {
 	out := make([]any, m.nrows)
 	for row := 0; row < m.nrows; row++ {
@@ -72,6 +74,7 @@ func (m *MultiIndex) Loc(label any) (int, bool) {
 	return -1, false
 }
 
+// Slice returns a new MultiIndex containing rows in [start, end).
 func (m *MultiIndex) Slice(start, end int) Index {
 	if start < 0 {
 		start = 0
@@ -93,4 +96,5 @@ func (m *MultiIndex) Slice(start, end int) Index {
 	return NewMultiIndex(sliced, m.name)
 }
 
+// Name returns the index name.
 func (m *MultiIndex) Name() string { return m.name }

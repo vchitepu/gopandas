@@ -12,6 +12,7 @@ const (
 	OrientIndex
 )
 
+// String returns the lowercase name of the JSON orientation.
 func (o JSONOrient) String() string {
 	switch o {
 	case OrientRecords:

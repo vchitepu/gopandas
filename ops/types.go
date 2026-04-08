@@ -4,12 +4,17 @@ package ops
 type JoinType int
 
 const (
+	// Inner keeps only matching keys from both sides.
 	Inner JoinType = iota
+	// Left keeps all keys from the left side.
 	Left
+	// Right keeps all keys from the right side.
 	Right
+	// Outer keeps all keys from both sides.
 	Outer
 )
 
+// String returns the lowercase name of the join type.
 func (jt JoinType) String() string {
 	switch jt {
 	case Inner:
@@ -29,16 +34,25 @@ func (jt JoinType) String() string {
 type AggFunc int
 
 const (
+	// AggSum computes the sum of values.
 	AggSum AggFunc = iota
+	// AggMean computes the arithmetic mean of values.
 	AggMean
+	// AggCount counts non-missing values.
 	AggCount
+	// AggMin returns the minimum value.
 	AggMin
+	// AggMax returns the maximum value.
 	AggMax
+	// AggStd computes the standard deviation of values.
 	AggStd
+	// AggFirst returns the first value.
 	AggFirst
+	// AggLast returns the last value.
 	AggLast
 )
 
+// String returns the lowercase name of the aggregation function.
 func (af AggFunc) String() string {
 	switch af {
 	case AggSum:
