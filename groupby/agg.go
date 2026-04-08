@@ -151,3 +151,19 @@ func (gb GroupBy) Mean() (dataframe.DataFrame, error) {
 		return sum / float64(len(vals))
 	})
 }
+
+// Min returns a DataFrame with the minimum of each numeric column per group.
+func (gb GroupBy) Min() (dataframe.DataFrame, error) {
+	return gb.aggregateNumeric(func(vals []float64) float64 {
+		if len(vals) == 0 {
+			return math.NaN()
+		}
+		m := vals[0]
+		for _, v := range vals[1:] {
+			if v < m {
+				m = v
+			}
+		}
+		return m
+	})
+}

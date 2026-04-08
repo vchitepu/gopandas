@@ -251,3 +251,28 @@ func TestMean(t *testing.T) {
 		t.Errorf("Mean() Sales salary = %v, want 85000", salesSalary)
 	}
 }
+
+func TestMin(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Min()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng min salary: min(100000, 120000, 110000) = 100000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 100000.0 {
+		t.Errorf("Min() Eng salary = %v, want 100000", engSalary)
+	}
+	// Sales min salary: min(80000, 90000) = 80000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 80000.0 {
+		t.Errorf("Min() Sales salary = %v, want 80000", salesSalary)
+	}
+}
