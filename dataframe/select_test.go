@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -179,6 +180,29 @@ func TestSample_TooMany(t *testing.T) {
 	_, err := df.Sample(100, 42)
 	if err == nil {
 		t.Fatal("Sample(100) expected error for n > Len()")
+	}
+}
+
+func TestSample_Deterministic(t *testing.T) {
+	df := selectTestDF(t)
+	seed := int64(123)
+	s1, err := df.Sample(3, seed)
+	if err != nil {
+		t.Fatalf("Sample() error: %v", err)
+	}
+	s2, err := df.Sample(3, seed)
+	if err != nil {
+		t.Fatalf("Sample() error: %v", err)
+	}
+	// Same seed should produce the same results
+	for i := 0; i < s1.Len(); i++ {
+		for _, col := range s1.Columns() {
+			v1, _ := s1.At(i, col)
+			v2, _ := s2.At(i, col)
+			if fmt.Sprintf("%v", v1) != fmt.Sprintf("%v", v2) {
+				t.Errorf("Sample deterministic: row %d col %s: %v != %v", i, col, v1, v2)
+			}
+		}
 	}
 }
 

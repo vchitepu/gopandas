@@ -10,7 +10,12 @@ import (
 )
 
 // WithColumn returns a new DataFrame with the given column added or replaced.
-func (df DataFrame) WithColumn(name string, s *series.Series[any]) DataFrame {
+// Returns an error if the series length does not match the DataFrame length.
+func (df DataFrame) WithColumn(name string, s *series.Series[any]) (DataFrame, error) {
+	if s.Len() != df.Len() {
+		return DataFrame{}, fmt.Errorf("dataframe.WithColumn: series length %d does not match DataFrame length %d", s.Len(), df.Len())
+	}
+
 	newData := make(map[string]*series.Series[any], len(df.data)+1)
 	for k, v := range df.data {
 		newData[k] = v
@@ -30,7 +35,7 @@ func (df DataFrame) WithColumn(name string, s *series.Series[any]) DataFrame {
 		newCols = append(newCols, name)
 	}
 
-	return DataFrame{index: df.index, columns: newCols, data: newData}
+	return DataFrame{index: df.index, columns: newCols, data: newData}, nil
 }
 
 // Rename returns a new DataFrame with columns renamed according to the mapping.

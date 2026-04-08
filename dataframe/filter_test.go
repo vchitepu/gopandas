@@ -112,3 +112,20 @@ func TestQuery_NotEqual(t *testing.T) {
 		t.Fatalf("Query().Len() = %d, want 2", result.Len())
 	}
 }
+
+func TestQuery_GreaterThanOrEqual(t *testing.T) {
+	df, _ := New(map[string]any{
+		"x": []int64{10, 20, 30, 40},
+	})
+	result, err := df.Query("x >= 20")
+	if err != nil {
+		t.Fatalf("Query() error: %v", err)
+	}
+	if result.Len() != 3 {
+		t.Fatalf("Query(x >= 20).Len() = %d, want 3", result.Len())
+	}
+	v0, _ := result.At(0, "x")
+	if v0 != int64(20) {
+		t.Errorf("Query(x >= 20).At(0, x) = %v, want 20", v0)
+	}
+}

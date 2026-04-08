@@ -61,3 +61,34 @@ func TestSortBy_ColNotFound(t *testing.T) {
 		t.Fatal("SortBy() expected error for missing column")
 	}
 }
+
+func TestSortBy_NilsLast(t *testing.T) {
+	records := []map[string]any{
+		{"val": int64(3)},
+		{"val": nil},
+		{"val": int64(1)},
+		{"val": nil},
+		{"val": int64(2)},
+	}
+	df, err := FromRecords(records)
+	if err != nil {
+		t.Fatalf("FromRecords() error: %v", err)
+	}
+	sorted, err := df.SortBy([]string{"val"}, []bool{true})
+	if err != nil {
+		t.Fatalf("SortBy() error: %v", err)
+	}
+	// Non-null values should come first in ascending order, nulls at end
+	v0, _ := sorted.At(0, "val")
+	v1, _ := sorted.At(1, "val")
+	v2, _ := sorted.At(2, "val")
+	if v0 != int64(1) || v1 != int64(2) || v2 != int64(3) {
+		t.Errorf("SortBy nils last: first 3 values = %v, %v, %v, want 1, 2, 3", v0, v1, v2)
+	}
+	// Last two should be nil
+	v3, _ := sorted.At(3, "val")
+	v4, _ := sorted.At(4, "val")
+	if v3 != nil || v4 != nil {
+		t.Errorf("SortBy nils last: last 2 values = %v, %v, want nil, nil", v3, v4)
+	}
+}

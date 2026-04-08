@@ -101,6 +101,7 @@ func (df DataFrame) LocRows(labels []any) (DataFrame, error) {
 }
 
 // selectRowsByPositions creates a new DataFrame by picking rows at given positions.
+// This is an internal method that assumes all positions are valid indices in [0, df.Len()).
 func (df DataFrame) selectRowsByPositions(positions []int) (DataFrame, error) {
 	nRows := len(positions)
 	newIdx := index.NewRangeIndex(nRows, "")

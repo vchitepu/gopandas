@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -226,12 +227,9 @@ func (df DataFrame) Corr() DataFrame {
 			if isNull || v == nil {
 				vals[i] = math.NaN()
 			} else {
-				switch x := v.(type) {
-				case int64:
-					vals[i] = float64(x)
-				case float64:
-					vals[i] = x
-				default:
+				if f, ok := toFloat64(v); ok {
+					vals[i] = f
+				} else {
 					vals[i] = math.NaN()
 				}
 			}
@@ -288,8 +286,13 @@ func pearson(x, y []float64) float64 {
 }
 
 // CorrWith returns a Series[any] with the Pearson correlation of each numeric column
-// with the given series.
-func (df DataFrame) CorrWith(s *series.Series[any]) series.Series[any] {
+// with the given series. Returns an error if the series length does not match
+// the DataFrame length.
+func (df DataFrame) CorrWith(s *series.Series[any]) (series.Series[any], error) {
+	if s.Len() != df.Len() {
+		return series.Series[any]{}, fmt.Errorf("dataframe.CorrWith: series length %d does not match DataFrame length %d", s.Len(), df.Len())
+	}
+
 	numCols := df.numericColumns()
 	labels := make([]string, len(numCols))
 	vals := make([]any, len(numCols))
@@ -301,12 +304,9 @@ func (df DataFrame) CorrWith(s *series.Series[any]) series.Series[any] {
 		if isNull || v == nil {
 			refVals[i] = math.NaN()
 		} else {
-			switch x := v.(type) {
-			case int64:
-				refVals[i] = float64(x)
-			case float64:
-				refVals[i] = x
-			default:
+			if f, ok := toFloat64(v); ok {
+				refVals[i] = f
+			} else {
 				refVals[i] = math.NaN()
 			}
 		}
@@ -321,12 +321,9 @@ func (df DataFrame) CorrWith(s *series.Series[any]) series.Series[any] {
 			if isNull || v == nil {
 				colVals[j] = math.NaN()
 			} else {
-				switch x := v.(type) {
-				case int64:
-					colVals[j] = float64(x)
-				case float64:
-					colVals[j] = x
-				default:
+				if f, ok := toFloat64(v); ok {
+					colVals[j] = f
+				} else {
 					colVals[j] = math.NaN()
 				}
 			}
@@ -335,5 +332,5 @@ func (df DataFrame) CorrWith(s *series.Series[any]) series.Series[any] {
 	}
 
 	idx := index.NewStringIndex(labels, "")
-	return series.New[any](memory.DefaultAllocator, vals, idx, "corrwith")
+	return series.New[any](memory.DefaultAllocator, vals, idx, "corrwith"), nil
 }

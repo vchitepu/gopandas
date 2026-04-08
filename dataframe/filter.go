@@ -72,7 +72,9 @@ func (df DataFrame) Query(expr string) (DataFrame, error) {
 	return df.Filter(mask)
 }
 
-// parseExpr parses a simple expression like "col > 10" or "col == 'foo'".
+// parseExpr parses a simple "column op value" expression like "col > 10" or "col == 'foo'".
+// It supports only simple expressions with a single column, operator, and literal value.
+// Supported operators: >=, <=, !=, ==, >, <.
 func parseExpr(expr string) (col, op string, val any, err error) {
 	// Try each operator (longest first to avoid ambiguity)
 	operators := []string{">=", "<=", "!=", "==", ">", "<"}
@@ -158,6 +160,7 @@ func compareValues(cellVal any, op string, queryVal any) bool {
 }
 
 // toFloat64 converts a value to float64 if possible.
+// Supports int, int32, int64, float32, and float64.
 func toFloat64(v any) (float64, bool) {
 	switch val := v.(type) {
 	case int64:
@@ -165,6 +168,10 @@ func toFloat64(v any) (float64, bool) {
 	case float64:
 		return val, true
 	case int:
+		return float64(val), true
+	case int32:
+		return float64(val), true
+	case float32:
 		return float64(val), true
 	default:
 		return 0, false

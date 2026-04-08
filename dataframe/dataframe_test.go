@@ -268,7 +268,10 @@ func TestIntegration_Pipeline(t *testing.T) {
 		bonusVals[i] = sal.(float64) * 0.1
 	}
 	bonusS := series.New[any](memory.DefaultAllocator, bonusVals, df.Index(), "bonus")
-	df7 := df.WithColumn("bonus", &bonusS)
+	df7, err := df.WithColumn("bonus", &bonusS)
+	if err != nil {
+		t.Fatalf("WithColumn() error: %v", err)
+	}
 	if len(df7.Columns()) != 4 {
 		t.Fatalf("WithColumn: Columns() len = %d, want 4", len(df7.Columns()))
 	}

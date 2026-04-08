@@ -74,8 +74,8 @@ func compareAny(a, b any) int {
 		return -1
 	}
 
-	af, aOK := toFloat64Sort(a)
-	bf, bOK := toFloat64Sort(b)
+	af, aOK := toFloat64(a)
+	bf, bOK := toFloat64(b)
 	if aOK && bOK {
 		if af < bf {
 			return -1
@@ -96,18 +96,4 @@ func compareAny(a, b any) int {
 		return 1
 	}
 	return 0
-}
-
-// toFloat64Sort converts a value to float64 for sorting.
-func toFloat64Sort(v any) (float64, bool) {
-	switch val := v.(type) {
-	case int64:
-		return float64(val), true
-	case float64:
-		return val, true
-	case int:
-		return float64(val), true
-	default:
-		return 0, false
-	}
 }

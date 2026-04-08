@@ -3,6 +3,10 @@ package dataframe
 import (
 	"math"
 	"testing"
+
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vinaychitepu/gopandas/index"
+	"github.com/vinaychitepu/gopandas/series"
 )
 
 // --- Task 25: Sum and Count ---
@@ -171,7 +175,10 @@ func TestCorrWith(t *testing.T) {
 	})
 	// Create a reference series
 	refS := df.data["a"]
-	result := df.CorrWith(refS)
+	result, err := df.CorrWith(refS)
+	if err != nil {
+		t.Fatalf("CorrWith() error: %v", err)
+	}
 
 	// a corr with a should be 1.0
 	aVal, _ := result.Loc("a")
@@ -184,5 +191,17 @@ func TestCorrWith(t *testing.T) {
 	bFloat, _ := bVal.(float64)
 	if math.Abs(bFloat-(-1.0)) > 0.001 {
 		t.Errorf("CorrWith().Loc(b) = %v, want -1.0", bFloat)
+	}
+}
+
+func TestCorrWith_LengthMismatch(t *testing.T) {
+	df, _ := New(map[string]any{
+		"a": []float64{1.0, 2.0, 3.0},
+	})
+	// Create a series with different length
+	shortS := series.New[any](memory.DefaultAllocator, []any{1.0, 2.0}, index.NewRangeIndex(2, ""), "ref")
+	_, err := df.CorrWith(&shortS)
+	if err == nil {
+		t.Fatal("CorrWith() expected error for length mismatch")
 	}
 }
