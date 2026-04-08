@@ -222,3 +222,81 @@ func TestBuilder_SetIndex(t *testing.T) {
 		t.Fatalf("got.Loc(Bob, age) = %v, want 25", v)
 	}
 }
+
+func TestBuilder_PlainMethods(t *testing.T) {
+	records := []map[string]any{
+		{"a": int64(1), "b": "x"},
+		{"a": nil, "b": "y"},
+		{"a": int64(3), "b": "z"},
+	}
+	df, err := FromRecords(records)
+	if err != nil {
+		t.Fatalf("FromRecords() error: %v", err)
+	}
+
+	got, err := df.Build().
+		Drop("b").
+		Rename(map[string]string{"a": "x"}).
+		FillNA(int64(0)).
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	cols := got.Columns()
+	if len(cols) != 1 || cols[0] != "x" {
+		t.Fatalf("got.Columns() = %v, want [x]", cols)
+	}
+
+	v, err := got.At(1, "x")
+	if err != nil {
+		t.Fatalf("got.At(1, x) error: %v", err)
+	}
+	if v != int64(0) {
+		t.Fatalf("got.At(1, x) = %v, want 0", v)
+	}
+}
+
+func TestBuilder_ResetIndex(t *testing.T) {
+	df, err := New(map[string]any{
+		"name": []string{"Alice", "Bob"},
+		"age":  []int64{30, 25},
+	})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	withIndex, err := df.Build().
+		SetIndex("name").
+		ResetIndex(false).
+		Result()
+	if err != nil {
+		t.Fatalf("builder ResetIndex(false) error: %v", err)
+	}
+
+	cols := withIndex.Columns()
+	if len(cols) != 2 || cols[0] != "name" || cols[1] != "age" {
+		t.Fatalf("ResetIndex(false) got.Columns() = %v, want [name age]", cols)
+	}
+
+	v, err := withIndex.At(0, "name")
+	if err != nil {
+		t.Fatalf("withIndex.At(0, name) error: %v", err)
+	}
+	if v != "Alice" {
+		t.Fatalf("withIndex.At(0, name) = %v, want Alice", v)
+	}
+
+	droppedIndex, err := df.Build().
+		SetIndex("name").
+		ResetIndex(true).
+		Result()
+	if err != nil {
+		t.Fatalf("builder ResetIndex(true) error: %v", err)
+	}
+
+	droppedCols := droppedIndex.Columns()
+	if len(droppedCols) != 1 || droppedCols[0] != "age" {
+		t.Fatalf("ResetIndex(true) got.Columns() = %v, want [age]", droppedCols)
+	}
+}

@@ -201,6 +201,46 @@ func (b *Builder) SetIndex(col string) *Builder {
 	return b
 }
 
+// Drop applies DataFrame.Drop.
+func (b *Builder) Drop(cols ...string) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.Drop(cols...)
+	return b
+}
+
+// Rename applies DataFrame.Rename.
+func (b *Builder) Rename(mapping map[string]string) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.Rename(mapping)
+	return b
+}
+
+// ResetIndex applies DataFrame.ResetIndex.
+func (b *Builder) ResetIndex(drop bool) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.ResetIndex(drop)
+	return b
+}
+
+// FillNA applies DataFrame.FillNA.
+func (b *Builder) FillNA(val any) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.FillNA(val)
+	return b
+}
+
 // DropNA applies DataFrame.DropNA and accumulates any error.
 func (b *Builder) DropNA(axis int, how string) *Builder {
 	if b.err != nil {
