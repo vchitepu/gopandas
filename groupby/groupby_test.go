@@ -543,3 +543,75 @@ func TestApply(t *testing.T) {
 		t.Errorf("Apply() B val = %v, want 30", bVal)
 	}
 }
+
+func TestTransform(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Transform: demean each group (subtract group mean)
+	result, err := gb.Transform(func(col string, positions []int, src dataframe.DataFrame) ([]float64, error) {
+		// Compute group mean
+		var sum float64
+		for _, pos := range positions {
+			v, err := src.At(pos, col)
+			if err != nil {
+				return nil, err
+			}
+			sum += v.(float64)
+		}
+		mean := sum / float64(len(positions))
+		// Demean
+		out := make([]float64, len(positions))
+		for i, pos := range positions {
+			v, err := src.At(pos, col)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = v.(float64) - mean
+		}
+		return out, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Original row count preserved
+	if result.Len() != 4 {
+		t.Errorf("Transform() len = %d, want 4", result.Len())
+	}
+	// A group: mean=15, row0=10-15=-5, row1=20-15=5
+	v0, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v0 != -5.0 {
+		t.Errorf("Transform() row0 val = %v, want -5", v0)
+	}
+	v1, err := result.At(1, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v1 != 5.0 {
+		t.Errorf("Transform() row1 val = %v, want 5", v1)
+	}
+	// B group: mean=35, row2=30-35=-5, row3=40-35=5
+	v2, err := result.At(2, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v2 != -5.0 {
+		t.Errorf("Transform() row2 val = %v, want -5", v2)
+	}
+	v3, err := result.At(3, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v3 != 5.0 {
+		t.Errorf("Transform() row3 val = %v, want 5", v3)
+	}
+}

@@ -148,3 +148,65 @@ func (gb GroupBy) Apply(fn func(dataframe.DataFrame) (dataframe.DataFrame, error
 	}
 	return dataframe.FromRecords(allRecords)
 }
+
+// TransformFunc is called per numeric column per group. It receives the column name,
+// the original row positions in that group, and the source DataFrame.
+// It must return a float64 slice with the same length as positions.
+type TransformFunc func(col string, positions []int, src dataframe.DataFrame) ([]float64, error)
+
+// Transform applies fn to each numeric value column of each group, placing
+// the transformed values back at the original row positions.
+// Returns a DataFrame with the same row count as the original, with numeric columns
+// replaced by transformed values and key columns preserved.
+func (gb GroupBy) Transform(fn TransformFunc) (dataframe.DataFrame, error) {
+	nRows := gb.df.Len()
+	numCols := gb.numericValueColumns()
+
+	// Initialize result columns: map of col -> values at original positions
+	resultCols := make(map[string][]float64, len(numCols))
+	for _, col := range numCols {
+		resultCols[col] = make([]float64, nRows)
+	}
+
+	// Process each group
+	for _, positions := range gb.groups {
+		for _, col := range numCols {
+			transformed, err := fn(col, positions, gb.df)
+			if err != nil {
+				return dataframe.DataFrame{}, err
+			}
+			if len(transformed) != len(positions) {
+				return dataframe.DataFrame{}, fmt.Errorf("Transform: fn returned %d values, want %d", len(transformed), len(positions))
+			}
+			// Place transformed values at original positions
+			for i, pos := range positions {
+				resultCols[col][pos] = transformed[i]
+			}
+		}
+	}
+
+	// Build result records preserving original row order
+	records := make([]map[string]any, nRows)
+	allCols := gb.df.Columns()
+	numColSet := make(map[string]bool, len(numCols))
+	for _, c := range numCols {
+		numColSet[c] = true
+	}
+
+	for i := 0; i < nRows; i++ {
+		rec := make(map[string]any, len(allCols))
+		for _, col := range allCols {
+			if numColSet[col] {
+				rec[col] = resultCols[col][i]
+			} else {
+				val, err := gb.df.At(i, col)
+				if err != nil {
+					return dataframe.DataFrame{}, err
+				}
+				rec[col] = val
+			}
+		}
+		records[i] = rec
+	}
+	return dataframe.FromRecords(records)
+}
