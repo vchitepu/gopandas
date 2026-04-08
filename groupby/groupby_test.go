@@ -615,3 +615,137 @@ func TestTransform(t *testing.T) {
 		t.Errorf("Transform() row3 val = %v, want 5", v3)
 	}
 }
+
+// TestIntegration exercises the full groupby pipeline.
+func TestIntegration(t *testing.T) {
+	// Build a more realistic dataset
+	df, err := dataframe.New(map[string]any{
+		"region": []string{"East", "East", "West", "West", "East", "West"},
+		"team":   []string{"A", "B", "A", "B", "A", "A"},
+		"score":  []float64{10, 20, 30, 40, 50, 60},
+		"bonus":  []float64{1, 2, 3, 4, 5, 6},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// --- Single key groupby ---
+	t.Run("SingleKey", func(t *testing.T) {
+		gb := NewGroupBy(df, "region")
+		if gb.NGroups() != 2 {
+			t.Errorf("NGroups() = %d, want 2", gb.NGroups())
+		}
+
+		sizes := gb.Size()
+		eastSize, _ := sizes.Loc("East")
+		westSize, _ := sizes.Loc("West")
+		if eastSize != int64(3) || westSize != int64(3) {
+			t.Errorf("Size: East=%d, West=%d, want 3, 3", eastSize, westSize)
+		}
+
+		sum, err := gb.Sum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// East score sum: 10+20+50=80
+		eastScore, _ := sum.At(0, "score")
+		if eastScore != 80.0 {
+			t.Errorf("Sum East score = %v, want 80", eastScore)
+		}
+
+		mean, err := gb.Mean()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// West score mean: (30+40+60)/3 ≈ 43.333
+		westMean, _ := mean.At(1, "score")
+		westMeanF, ok := westMean.(float64)
+		if !ok || math.Abs(westMeanF-43.333) > 0.1 {
+			t.Errorf("Mean West score = %v, want ~43.333", westMean)
+		}
+
+		count, err := gb.Count()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastCount, _ := count.At(0, "score")
+		if eastCount != int64(3) {
+			t.Errorf("Count East score = %v, want 3", eastCount)
+		}
+
+		min, err := gb.Min()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastMin, _ := min.At(0, "score")
+		if eastMin != 10.0 {
+			t.Errorf("Min East score = %v, want 10", eastMin)
+		}
+
+		max, err := gb.Max()
+		if err != nil {
+			t.Fatal(err)
+		}
+		westMax, _ := max.At(1, "score")
+		if westMax != 60.0 {
+			t.Errorf("Max West score = %v, want 60", westMax)
+		}
+
+		first, err := gb.First()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastFirstTeam, _ := first.At(0, "team")
+		if eastFirstTeam != "A" {
+			t.Errorf("First East team = %v, want A", eastFirstTeam)
+		}
+
+		last, err := gb.Last()
+		if err != nil {
+			t.Fatal(err)
+		}
+		westLastTeam, _ := last.At(1, "team")
+		if westLastTeam != "A" {
+			t.Errorf("Last West team = %v, want A", westLastTeam)
+		}
+	})
+
+	// --- Multi key groupby ---
+	t.Run("MultiKey", func(t *testing.T) {
+		gb := NewGroupBy(df, "region", "team")
+		if gb.NGroups() != 4 {
+			t.Errorf("NGroups() = %d, want 4", gb.NGroups())
+		}
+
+		sum, err := gb.Sum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rows, _ := sum.Shape()
+		if rows != 4 {
+			t.Errorf("MultiKey Sum rows = %d, want 4", rows)
+		}
+	})
+
+	// --- Agg with multiple functions ---
+	t.Run("Agg", func(t *testing.T) {
+		gb := NewGroupBy(df, "region")
+		result, err := gb.Agg(map[string]string{
+			"score": "sum",
+			"bonus": "mean",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastScore, _ := result.At(0, "score")
+		if eastScore != 80.0 {
+			t.Errorf("Agg East score sum = %v, want 80", eastScore)
+		}
+		// East bonus mean: (1+2+5)/3 ≈ 2.667
+		eastBonus, _ := result.At(0, "bonus")
+		eastBonusF, ok := eastBonus.(float64)
+		if !ok || math.Abs(eastBonusF-2.667) > 0.01 {
+			t.Errorf("Agg East bonus mean = %v, want ~2.667", eastBonus)
+		}
+	})
+}
