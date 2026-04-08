@@ -367,3 +367,40 @@ func TestStd_SingleElement(t *testing.T) {
 		t.Errorf("Std() single element = %v, want NaN", aStd)
 	}
 }
+
+func TestFirst(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.First()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("First() rows = %d, want 2", rows)
+	}
+	// First includes ALL columns, not just numeric
+	// Eng first: row 0 -> Alice, 100000
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != "Alice" {
+		t.Errorf("First() Eng name = %v, want Alice", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 100000.0 {
+		t.Errorf("First() Eng salary = %v, want 100000", engSalary)
+	}
+	// Sales first: row 1 -> Bob, 80000
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != "Bob" {
+		t.Errorf("First() Sales name = %v, want Bob", salesName)
+	}
+}

@@ -206,3 +206,36 @@ func (gb GroupBy) Max() (dataframe.DataFrame, error) {
 		return m
 	})
 }
+
+// aggregateFirstLast returns the first (last=false) or last (last=true) row from each group.
+// Includes ALL columns, not just numeric.
+func (gb GroupBy) aggregateFirstLast(last bool) (dataframe.DataFrame, error) {
+	keys := gb.sortedGroupKeys()
+	allCols := gb.df.Columns()
+
+	records := make([]map[string]any, len(keys))
+	for i, k := range keys {
+		positions := gb.groups[k]
+		var pos int
+		if last {
+			pos = positions[len(positions)-1]
+		} else {
+			pos = positions[0]
+		}
+		rec := make(map[string]any, len(allCols))
+		for _, col := range allCols {
+			val, err := gb.df.At(pos, col)
+			if err != nil {
+				return dataframe.DataFrame{}, err
+			}
+			rec[col] = val
+		}
+		records[i] = rec
+	}
+	return dataframe.FromRecords(records)
+}
+
+// First returns a DataFrame with the first row from each group. Includes ALL columns.
+func (gb GroupBy) First() (dataframe.DataFrame, error) {
+	return gb.aggregateFirstLast(false)
+}
