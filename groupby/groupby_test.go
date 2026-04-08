@@ -504,3 +504,42 @@ func TestAgg_MultipleFunctions(t *testing.T) {
 		t.Errorf("Agg(max) B val2 = %v, want 4", bVal2)
 	}
 }
+
+func TestApply(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Apply: return the head(1) of each group sub-DataFrame
+	result, err := gb.Apply(func(sub dataframe.DataFrame) (dataframe.DataFrame, error) {
+		return sub.Head(1), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Apply() rows = %d, want 2", rows)
+	}
+	// A first val = 10
+	aVal, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal != 10.0 {
+		t.Errorf("Apply() A val = %v, want 10", aVal)
+	}
+	// B first val = 30
+	bVal, err := result.At(1, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bVal != 30.0 {
+		t.Errorf("Apply() B val = %v, want 30", bVal)
+	}
+}

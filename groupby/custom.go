@@ -117,3 +117,34 @@ func (gb GroupBy) Agg(colFuncs map[string]string) (dataframe.DataFrame, error) {
 	}
 	return dataframe.FromRecords(records)
 }
+
+// Apply calls fn for each group's sub-DataFrame and concatenates the results.
+func (gb GroupBy) Apply(fn func(dataframe.DataFrame) (dataframe.DataFrame, error)) (dataframe.DataFrame, error) {
+	keys := gb.sortedGroupKeys()
+	var allRecords []map[string]any
+
+	for _, k := range keys {
+		sub, err := gb.subDF(gb.groups[k])
+		if err != nil {
+			return dataframe.DataFrame{}, err
+		}
+		result, err := fn(sub)
+		if err != nil {
+			return dataframe.DataFrame{}, err
+		}
+		// Extract rows from result as records
+		cols := result.Columns()
+		for i := 0; i < result.Len(); i++ {
+			rec := make(map[string]any, len(cols))
+			for _, col := range cols {
+				val, err := result.At(i, col)
+				if err != nil {
+					return dataframe.DataFrame{}, err
+				}
+				rec[col] = val
+			}
+			allRecords = append(allRecords, rec)
+		}
+	}
+	return dataframe.FromRecords(allRecords)
+}
