@@ -138,6 +138,27 @@ func FromArrow(rec arrowlib.Record) (DataFrame, error) {
 	}, nil
 }
 
+// FromArrowWithIndex creates a DataFrame from an Arrow Record with a custom index.
+func FromArrowWithIndex(rec arrowlib.Record, idx index.Index) (DataFrame, error) {
+	nCols := int(rec.NumCols())
+	cols := make([]string, nCols)
+	colData := make(map[string]*series.Series[any], nCols)
+
+	schema := rec.Schema()
+	for i := 0; i < nCols; i++ {
+		field := schema.Field(i)
+		cols[i] = field.Name
+		s := series.FromArrow(rec.Column(i), idx, field.Name)
+		colData[field.Name] = &s
+	}
+
+	return DataFrame{
+		index:   idx,
+		columns: cols,
+		data:    colData,
+	}, nil
+}
+
 // sliceLen returns the length of a typed slice wrapped in any.
 func sliceLen(v any) (int, error) {
 	switch s := v.(type) {
