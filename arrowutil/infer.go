@@ -31,7 +31,9 @@ func InferDType(arr arrow.Array) dtype.DType {
 }
 
 // BuildArray creates an Arrow array from a []any slice using the specified DType.
-// nil values become Arrow nulls. Returns error for unsupported dtypes or type mismatches.
+// nil values in the input become Arrow nulls.
+// The caller is responsible for calling Release() on the returned array.
+// Returns an error for unsupported dtypes or element type mismatches.
 func BuildArray(alloc memory.Allocator, values []any, dt dtype.DType) (arrow.Array, error) {
 	switch dt {
 	case dtype.Int64:
@@ -44,6 +46,8 @@ func BuildArray(alloc memory.Allocator, values []any, dt dtype.DType) (arrow.Arr
 		return buildBoolFromAny(alloc, values)
 	case dtype.Timestamp:
 		return buildTimestampFromAny(alloc, values)
+	// dtype.Dictionary is intentionally not supported: dictionary arrays require
+	// both index and value arrays and cannot be built from a flat []any slice.
 	default:
 		return nil, fmt.Errorf("arrowutil.BuildArray: unsupported dtype %v", dt)
 	}

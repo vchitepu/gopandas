@@ -36,14 +36,30 @@ func GetValue(arr arrow.Array, i int) (any, error) {
 	case *array.Boolean:
 		return a.Value(i), nil
 	case *array.Timestamp:
-		us := int64(a.Value(i))
-		return time.Unix(0, us*int64(time.Microsecond)).UTC(), nil
+		dt := a.DataType().(*arrow.TimestampType)
+		raw := int64(a.Value(i))
+		var ns int64
+		switch dt.Unit {
+		case arrow.Second:
+			ns = raw * int64(time.Second)
+		case arrow.Millisecond:
+			ns = raw * int64(time.Millisecond)
+		case arrow.Microsecond:
+			ns = raw * int64(time.Microsecond)
+		case arrow.Nanosecond:
+			ns = raw
+		default:
+			ns = raw * int64(time.Microsecond) // fallback
+		}
+		return time.Unix(0, ns).UTC(), nil
 	default:
 		return nil, fmt.Errorf("arrowutil.GetValue: unsupported array type %T", arr)
 	}
 }
 
 // SliceArray returns a zero-copy slice of arr from start (inclusive) to end (exclusive).
+// The caller must call Release() on the returned array.
+// Panics if start > end or if bounds are outside [0, arr.Len()].
 func SliceArray(arr arrow.Array, start, end int) arrow.Array {
 	return array.NewSlice(arr, int64(start), int64(end))
 }

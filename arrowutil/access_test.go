@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/arrowutil"
@@ -184,5 +185,28 @@ func TestSliceArray_Empty(t *testing.T) {
 	defer sliced.Release()
 	if sliced.Len() != 0 {
 		t.Fatalf("expected len 0, got %d", sliced.Len())
+	}
+}
+
+func TestGetValue_Timestamp_Nanosecond(t *testing.T) {
+	alloc := memory.DefaultAllocator
+	dt := &arrow.TimestampType{Unit: arrow.Nanosecond, TimeZone: "UTC"}
+	bldr := array.NewTimestampBuilder(alloc, dt)
+	defer bldr.Release()
+	ts := time.Date(2024, 6, 15, 9, 0, 0, 0, time.UTC)
+	bldr.Append(arrow.Timestamp(ts.UnixNano()))
+	arr := bldr.NewTimestampArray()
+	defer arr.Release()
+
+	got, err := arrowutil.GetValue(arr, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotTime, ok := got.(time.Time)
+	if !ok {
+		t.Fatalf("expected time.Time, got %T", got)
+	}
+	if !gotTime.Equal(ts) {
+		t.Errorf("expected %v, got %v", ts, gotTime)
 	}
 }

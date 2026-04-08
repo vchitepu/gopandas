@@ -91,6 +91,14 @@ func TestBuildBoolArray(t *testing.T) {
 	}
 }
 
+func TestBuildBoolArray_Empty(t *testing.T) {
+	arr := arrowutil.BuildBoolArray(memory.DefaultAllocator, []bool{})
+	defer arr.Release()
+	if arr.Len() != 0 {
+		t.Fatalf("expected len 0, got %d", arr.Len())
+	}
+}
+
 func TestBuildTimestampArray(t *testing.T) {
 	t1 := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
 	t2 := time.Date(2024, 6, 20, 14, 0, 0, 0, time.UTC)
