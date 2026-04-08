@@ -82,6 +82,19 @@ func TestDTypeToArrow(t *testing.T) {
 		if !tt.wantErr && got.ID() != tt.want.ID() {
 			t.Errorf("DTypeToArrow(%v) = %v, want %v", tt.dt, got, tt.want)
 		}
+		if !tt.wantErr && got.ID() == arrow.DICTIONARY {
+			dictType, ok := got.(*arrow.DictionaryType)
+			if !ok {
+				t.Errorf("DTypeToArrow(Dictionary): expected *arrow.DictionaryType, got %T", got)
+			} else {
+				if dictType.IndexType.ID() != arrow.INT32 {
+					t.Errorf("DTypeToArrow(Dictionary): IndexType = %v, want INT32", dictType.IndexType)
+				}
+				if dictType.ValueType.ID() != arrow.STRING {
+					t.Errorf("DTypeToArrow(Dictionary): ValueType = %v, want STRING", dictType.ValueType)
+				}
+			}
+		}
 	}
 }
 
