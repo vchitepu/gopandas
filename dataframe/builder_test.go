@@ -1,6 +1,7 @@
 package dataframe
 
 import (
+	"math"
 	"testing"
 
 	"github.com/apache/arrow-go/v18/arrow/memory"
@@ -298,5 +299,79 @@ func TestBuilder_ResetIndex(t *testing.T) {
 	droppedCols := droppedIndex.Columns()
 	if len(droppedCols) != 1 || droppedCols[0] != "age" {
 		t.Fatalf("ResetIndex(true) got.Columns() = %v, want [age]", droppedCols)
+	}
+}
+
+func TestBuilder_Describe(t *testing.T) {
+	df, err := New(map[string]any{
+		"a": []float64{1.0, 2.0, 3.0, 4.0, 5.0},
+		"b": []int64{10, 20, 30, 40, 50},
+	})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	got, err := df.Build().
+		Describe().
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	rows, cols := got.Shape()
+	if rows != 5 {
+		t.Fatalf("Describe().Shape() rows = %d, want 5", rows)
+	}
+	if cols != 2 {
+		t.Fatalf("Describe().Shape() cols = %d, want 2", cols)
+	}
+
+	v, err := got.Loc("count", "a")
+	if err != nil {
+		t.Fatalf("Describe().Loc(count, a) error: %v", err)
+	}
+	if v != 5.0 {
+		t.Fatalf("Describe().Loc(count, a) = %v, want 5.0", v)
+	}
+}
+
+func TestBuilder_Corr(t *testing.T) {
+	df, err := New(map[string]any{
+		"a": []float64{1.0, 2.0, 3.0, 4.0, 5.0},
+		"b": []float64{2.0, 4.0, 6.0, 8.0, 10.0},
+	})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	got, err := df.Build().
+		Corr().
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	aa, err := got.Loc("a", "a")
+	if err != nil {
+		t.Fatalf("Corr().Loc(a, a) error: %v", err)
+	}
+	aaFloat, ok := aa.(float64)
+	if !ok {
+		t.Fatalf("Corr().Loc(a, a) type = %T, want float64", aa)
+	}
+	if math.Abs(aaFloat-1.0) > 0.001 {
+		t.Fatalf("Corr().Loc(a, a) = %v, want 1.0", aa)
+	}
+
+	ab, err := got.Loc("a", "b")
+	if err != nil {
+		t.Fatalf("Corr().Loc(a, b) error: %v", err)
+	}
+	abFloat, ok := ab.(float64)
+	if !ok {
+		t.Fatalf("Corr().Loc(a, b) type = %T, want float64", ab)
+	}
+	if math.Abs(abFloat-1.0) > 0.001 {
+		t.Fatalf("Corr().Loc(a, b) = %v, want 1.0", ab)
 	}
 }

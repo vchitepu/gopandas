@@ -105,6 +105,26 @@ func (b *Builder) Tail(n int) *Builder {
 	return b
 }
 
+// Describe applies DataFrame.Describe.
+func (b *Builder) Describe() *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.Describe()
+	return b
+}
+
+// Corr applies DataFrame.Corr.
+func (b *Builder) Corr() *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	b.df = b.df.Corr()
+	return b
+}
+
 // ILoc applies DataFrame.ILoc and accumulates any error.
 func (b *Builder) ILoc(rowStart, rowEnd, colStart, colEnd int) *Builder {
 	if b.err != nil {
