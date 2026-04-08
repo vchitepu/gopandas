@@ -505,6 +505,21 @@ func TestAgg_MultipleFunctions(t *testing.T) {
 	}
 }
 
+func TestAgg_UnknownFunc(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B"},
+		"val": []float64{1, 2, 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	_, err = gb.Agg(map[string]string{"val": "bogus"})
+	if err == nil {
+		t.Error("Agg() with unknown function should return error, got nil")
+	}
+}
+
 func TestApply(t *testing.T) {
 	df, err := dataframe.New(map[string]any{
 		"key": []string{"A", "A", "B", "B"},
@@ -541,6 +556,68 @@ func TestApply(t *testing.T) {
 	}
 	if bVal != 30.0 {
 		t.Errorf("Apply() B val = %v, want 30", bVal)
+	}
+}
+
+func TestApply_CustomAgg(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Apply: compute range (max - min) per group
+	result, err := gb.Apply(func(sub dataframe.DataFrame) (dataframe.DataFrame, error) {
+		n := sub.Len()
+		minVal := math.Inf(1)
+		maxVal := math.Inf(-1)
+		for i := 0; i < n; i++ {
+			v, err := sub.At(i, "val")
+			if err != nil {
+				return dataframe.DataFrame{}, err
+			}
+			f := v.(float64)
+			if f < minVal {
+				minVal = f
+			}
+			if f > maxVal {
+				maxVal = f
+			}
+		}
+		keyVal, err := sub.At(0, "key")
+		if err != nil {
+			return dataframe.DataFrame{}, err
+		}
+		return dataframe.New(map[string]any{
+			"key":    []string{keyVal.(string)},
+			"range_": []float64{maxVal - minVal},
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Apply() rows = %d, want 2", rows)
+	}
+	// A range = 20-10 = 10
+	aRange, err := result.At(0, "range_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aRange != 10.0 {
+		t.Errorf("Apply() A range = %v, want 10", aRange)
+	}
+	// B range = 40-30 = 10
+	bRange, err := result.At(1, "range_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bRange != 10.0 {
+		t.Errorf("Apply() B range = %v, want 10", bRange)
 	}
 }
 

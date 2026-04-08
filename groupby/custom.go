@@ -118,10 +118,31 @@ func (gb GroupBy) Agg(colFuncs map[string]string) (dataframe.DataFrame, error) {
 	return dataframe.FromRecords(records)
 }
 
+// concatDataFrames concatenates a slice of DataFrames into a single DataFrame
+// by extracting all rows as records and rebuilding via FromRecords.
+func concatDataFrames(frames []dataframe.DataFrame) (dataframe.DataFrame, error) {
+	var allRecords []map[string]any
+	for _, frame := range frames {
+		cols := frame.Columns()
+		for i := 0; i < frame.Len(); i++ {
+			rec := make(map[string]any, len(cols))
+			for _, col := range cols {
+				val, err := frame.At(i, col)
+				if err != nil {
+					return dataframe.DataFrame{}, err
+				}
+				rec[col] = val
+			}
+			allRecords = append(allRecords, rec)
+		}
+	}
+	return dataframe.FromRecords(allRecords)
+}
+
 // Apply calls fn for each group's sub-DataFrame and concatenates the results.
 func (gb GroupBy) Apply(fn func(dataframe.DataFrame) (dataframe.DataFrame, error)) (dataframe.DataFrame, error) {
 	keys := gb.sortedGroupKeys()
-	var allRecords []map[string]any
+	frames := make([]dataframe.DataFrame, 0, len(keys))
 
 	for _, k := range keys {
 		sub, err := gb.subDF(gb.groups[k])
@@ -132,21 +153,9 @@ func (gb GroupBy) Apply(fn func(dataframe.DataFrame) (dataframe.DataFrame, error
 		if err != nil {
 			return dataframe.DataFrame{}, err
 		}
-		// Extract rows from result as records
-		cols := result.Columns()
-		for i := 0; i < result.Len(); i++ {
-			rec := make(map[string]any, len(cols))
-			for _, col := range cols {
-				val, err := result.At(i, col)
-				if err != nil {
-					return dataframe.DataFrame{}, err
-				}
-				rec[col] = val
-			}
-			allRecords = append(allRecords, rec)
-		}
+		frames = append(frames, result)
 	}
-	return dataframe.FromRecords(allRecords)
+	return concatDataFrames(frames)
 }
 
 // TransformFunc is called per numeric column per group. It receives the column name,
