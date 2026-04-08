@@ -54,11 +54,16 @@ func fromColumns(data []byte) (dataframe.DataFrame, error) {
 		return dataframe.New(map[string]any{})
 	}
 
-	// Determine number of rows from first column
+	// Determine number of rows from first column and validate equal lengths
 	var nRows int
-	for _, vals := range columns {
-		nRows = len(vals)
-		break
+	first := true
+	for col, vals := range columns {
+		if first {
+			nRows = len(vals)
+			first = false
+		} else if len(vals) != nRows {
+			return dataframe.DataFrame{}, fmt.Errorf("json.FromJSON(columns): column %q has length %d, expected %d", col, len(vals), nRows)
+		}
 	}
 
 	// Convert to records format

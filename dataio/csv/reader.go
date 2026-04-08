@@ -137,8 +137,10 @@ func FromCSV(r io.Reader, opts ...CSVOption) (dataframe.DataFrame, error) {
 					}
 				}
 				idx = index.NewStringIndex(labels, cfg.indexCol)
-				// Remove from data columns
-				dataCols = append(rawCols[:i], rawCols[i+1:]...)
+				// Remove from data columns (allocate new slice to avoid mutating rawCols)
+				dataCols = make([]rawColumn, 0, len(rawCols)-1)
+				dataCols = append(dataCols, rawCols[:i]...)
+				dataCols = append(dataCols, rawCols[i+1:]...)
 				found = true
 				break
 			}

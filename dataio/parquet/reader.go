@@ -36,10 +36,10 @@ func FromParquet(r pq.ReaderAtSeeker) (dataframe.DataFrame, error) {
 	}
 	defer tbl.Release()
 
-	tr := array.NewTableReader(tbl, tbl.NumRows())
-	defer tr.Release()
-
-	if !tr.Next() {
+	// Use a batch size equal to the total rows to consolidate all row groups
+	// into a single record. This ensures multi-row-group files are fully read.
+	batchSize := tbl.NumRows()
+	if batchSize == 0 {
 		// Empty table — build empty record preserving schema
 		schema := tbl.Schema()
 		emptyArrays := make([]arrow.Array, schema.NumFields())
@@ -54,6 +54,13 @@ func FromParquet(r pq.ReaderAtSeeker) (dataframe.DataFrame, error) {
 		}
 		defer rec.Release()
 		return dataframe.FromArrow(rec)
+	}
+
+	tr := array.NewTableReader(tbl, batchSize)
+	defer tr.Release()
+
+	if !tr.Next() {
+		return dataframe.DataFrame{}, fmt.Errorf("parquet: unexpected empty batch from non-empty table")
 	}
 
 	rec := tr.Record()

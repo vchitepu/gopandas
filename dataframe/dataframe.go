@@ -140,6 +140,10 @@ func FromArrow(rec arrowlib.Record) (DataFrame, error) {
 
 // FromArrowWithIndex creates a DataFrame from an Arrow Record with a custom index.
 func FromArrowWithIndex(rec arrowlib.Record, idx index.Index) (DataFrame, error) {
+	if idx.Len() != int(rec.NumRows()) {
+		return DataFrame{}, fmt.Errorf("index length %d does not match record row count %d", idx.Len(), int(rec.NumRows()))
+	}
+
 	nCols := int(rec.NumCols())
 	cols := make([]string, nCols)
 	colData := make(map[string]*series.Series[any], nCols)
