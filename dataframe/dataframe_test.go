@@ -126,3 +126,35 @@ func TestString_Empty(t *testing.T) {
 		t.Errorf("String() = %q, want %q", out, "Empty DataFrame")
 	}
 }
+
+func TestFromRecords(t *testing.T) {
+	records := []map[string]any{
+		{"name": "Alice", "age": int64(30)},
+		{"name": "Bob", "age": int64(25)},
+		{"name": "Carol"}, // missing "age"
+	}
+	df, err := FromRecords(records)
+	if err != nil {
+		t.Fatalf("FromRecords() error: %v", err)
+	}
+	rows, cols := df.Shape()
+	if rows != 3 || cols != 2 {
+		t.Fatalf("Shape() = (%d, %d), want (3, 2)", rows, cols)
+	}
+	// Columns should be sorted
+	colNames := df.Columns()
+	if colNames[0] != "age" || colNames[1] != "name" {
+		t.Fatalf("Columns() = %v, want [age name]", colNames)
+	}
+}
+
+func TestFromRecords_Empty(t *testing.T) {
+	df, err := FromRecords(nil)
+	if err != nil {
+		t.Fatalf("FromRecords() error: %v", err)
+	}
+	rows, cols := df.Shape()
+	if rows != 0 || cols != 0 {
+		t.Fatalf("Shape() = (%d, %d), want (0, 0)", rows, cols)
+	}
+}

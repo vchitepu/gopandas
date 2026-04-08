@@ -68,6 +68,50 @@ func New(data map[string]any) (DataFrame, error) {
 	}, nil
 }
 
+// FromRecords creates a DataFrame from a slice of row-maps.
+// Missing keys produce nil values. Column names are sorted deterministically.
+func FromRecords(records []map[string]any) (DataFrame, error) {
+	if len(records) == 0 {
+		return DataFrame{
+			index:   index.NewRangeIndex(0, ""),
+			columns: []string{},
+			data:    map[string]*series.Series[any]{},
+		}, nil
+	}
+
+	// Collect all column names
+	colSet := make(map[string]bool)
+	for _, rec := range records {
+		for k := range rec {
+			colSet[k] = true
+		}
+	}
+	cols := make([]string, 0, len(colSet))
+	for k := range colSet {
+		cols = append(cols, k)
+	}
+	sort.Strings(cols)
+
+	nRows := len(records)
+	idx := index.NewRangeIndex(nRows, "")
+	colData := make(map[string]*series.Series[any], len(cols))
+
+	for _, col := range cols {
+		vals := make([]any, nRows)
+		for i, rec := range records {
+			vals[i] = rec[col] // nil if key missing
+		}
+		s := series.New[any](memory.DefaultAllocator, vals, idx, col)
+		colData[col] = &s
+	}
+
+	return DataFrame{
+		index:   idx,
+		columns: cols,
+		data:    colData,
+	}, nil
+}
+
 // sliceLen returns the length of a typed slice wrapped in any.
 func sliceLen(v any) (int, error) {
 	switch s := v.(type) {
