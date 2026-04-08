@@ -87,3 +87,21 @@ func (gb GroupBy) Size() series.Series[int64] {
 	idx := index.NewStringIndex(labels, "")
 	return series.New[int64](memory.DefaultAllocator, values, idx, "size")
 }
+
+// subDF creates a sub-DataFrame from the given row positions using dataframe.FromRecords.
+func (gb GroupBy) subDF(positions []int) (dataframe.DataFrame, error) {
+	cols := gb.df.Columns()
+	records := make([]map[string]any, len(positions))
+	for i, pos := range positions {
+		rec := make(map[string]any, len(cols))
+		for _, col := range cols {
+			val, err := gb.df.At(pos, col)
+			if err != nil {
+				return dataframe.DataFrame{}, err
+			}
+			rec[col] = val
+		}
+		records[i] = rec
+	}
+	return dataframe.FromRecords(records)
+}

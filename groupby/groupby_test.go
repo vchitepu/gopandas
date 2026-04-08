@@ -127,3 +127,36 @@ func TestSize(t *testing.T) {
 		t.Errorf("Size().Loc(Sales) = %v (null=%v), want 2", salesVal, salesNull)
 	}
 }
+
+func TestSubDF(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	// Eng group: rows 0, 2, 4
+	sub, err := gb.subDF([]int{0, 2, 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, cols := sub.Shape()
+	if rows != 3 {
+		t.Errorf("subDF rows = %d, want 3", rows)
+	}
+	if cols != 3 {
+		t.Errorf("subDF cols = %d, want 3", cols)
+	}
+	// Check first row of sub-DF has Alice
+	val, err := sub.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != "Alice" {
+		t.Errorf("subDF At(0, name) = %v, want Alice", val)
+	}
+	// Check salary of Charlie (row 1 in sub-DF, row 2 in original)
+	val, err = sub.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != 120000.0 {
+		t.Errorf("subDF At(1, salary) = %v, want 120000", val)
+	}
+}
