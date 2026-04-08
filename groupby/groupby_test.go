@@ -226,3 +226,28 @@ func TestCount(t *testing.T) {
 		t.Errorf("Count() Sales name = %v, want 2", salesName)
 	}
 }
+
+func TestMean(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Mean()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng mean salary: (100000+120000+110000)/3 = 110000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 110000.0 {
+		t.Errorf("Mean() Eng salary = %v, want 110000", engSalary)
+	}
+	// Sales mean salary: (80000+90000)/2 = 85000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 85000.0 {
+		t.Errorf("Mean() Sales salary = %v, want 85000", salesSalary)
+	}
+}

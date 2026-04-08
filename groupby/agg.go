@@ -2,6 +2,7 @@ package groupby
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/vinaychitepu/gopandas/dataframe"
@@ -134,4 +135,19 @@ func (gb GroupBy) Count() (dataframe.DataFrame, error) {
 		records[i] = rec
 	}
 	return dataframe.FromRecords(records)
+}
+
+// Mean returns a DataFrame with the mean of each numeric column per group.
+// Empty groups produce NaN.
+func (gb GroupBy) Mean() (dataframe.DataFrame, error) {
+	return gb.aggregateNumeric(func(vals []float64) float64 {
+		if len(vals) == 0 {
+			return math.NaN()
+		}
+		var sum float64
+		for _, v := range vals {
+			sum += v
+		}
+		return sum / float64(len(vals))
+	})
 }
