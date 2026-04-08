@@ -190,3 +190,39 @@ func TestSum(t *testing.T) {
 		t.Errorf("Sum() Sales salary = %v, want 170000", salesSalary)
 	}
 }
+
+func TestCount(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Count()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Count() rows = %d, want 2", rows)
+	}
+	// Count includes ALL non-key columns, not just numeric
+	// Eng has 3 rows, Sales has 2
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != int64(3) {
+		t.Errorf("Count() Eng name = %v, want 3", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != int64(3) {
+		t.Errorf("Count() Eng salary = %v, want 3", engSalary)
+	}
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != int64(2) {
+		t.Errorf("Count() Sales name = %v, want 2", salesName)
+	}
+}

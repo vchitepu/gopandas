@@ -103,3 +103,35 @@ func (gb GroupBy) Sum() (dataframe.DataFrame, error) {
 		return sum
 	})
 }
+
+// Count returns a DataFrame with the count of non-null values per group for ALL non-key columns.
+func (gb GroupBy) Count() (dataframe.DataFrame, error) {
+	keys := gb.sortedGroupKeys()
+	valCols := gb.valueColumns()
+
+	records := make([]map[string]any, len(keys))
+	for i, k := range keys {
+		rec := make(map[string]any)
+		// Add key columns
+		parts := splitCompositeKey(k)
+		for j, keyCol := range gb.keys {
+			rec[keyCol] = parts[j]
+		}
+		// Count non-null values in each value column
+		for _, col := range valCols {
+			var count int64
+			for _, pos := range gb.groups[k] {
+				v, err := gb.df.At(pos, col)
+				if err != nil {
+					return dataframe.DataFrame{}, err
+				}
+				if v != nil {
+					count++
+				}
+			}
+			rec[col] = count
+		}
+		records[i] = rec
+	}
+	return dataframe.FromRecords(records)
+}
