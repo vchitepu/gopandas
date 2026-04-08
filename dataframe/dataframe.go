@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	arrowlib "github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/dtype"
 	"github.com/vinaychitepu/gopandas/index"
@@ -103,6 +104,31 @@ func FromRecords(records []map[string]any) (DataFrame, error) {
 		}
 		s := series.New[any](memory.DefaultAllocator, vals, idx, col)
 		colData[col] = &s
+	}
+
+	return DataFrame{
+		index:   idx,
+		columns: cols,
+		data:    colData,
+	}, nil
+}
+
+// FromArrow creates a DataFrame from an Arrow Record.
+// Column order matches the schema field order.
+func FromArrow(rec arrowlib.Record) (DataFrame, error) {
+	nRows := int(rec.NumRows())
+	nCols := int(rec.NumCols())
+
+	idx := index.NewRangeIndex(nRows, "")
+	cols := make([]string, nCols)
+	colData := make(map[string]*series.Series[any], nCols)
+
+	schema := rec.Schema()
+	for i := 0; i < nCols; i++ {
+		field := schema.Field(i)
+		cols[i] = field.Name
+		s := series.FromArrow(rec.Column(i), idx, field.Name)
+		colData[field.Name] = &s
 	}
 
 	return DataFrame{

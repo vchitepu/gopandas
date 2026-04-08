@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/vinaychitepu/gopandas/dtype"
 )
 
@@ -156,5 +159,35 @@ func TestFromRecords_Empty(t *testing.T) {
 	rows, cols := df.Shape()
 	if rows != 0 || cols != 0 {
 		t.Fatalf("Shape() = (%d, %d), want (0, 0)", rows, cols)
+	}
+}
+
+func TestFromArrow(t *testing.T) {
+	alloc := memory.DefaultAllocator
+	schema := arrow.NewSchema(
+		[]arrow.Field{
+			{Name: "id", Type: arrow.PrimitiveTypes.Int64},
+			{Name: "val", Type: arrow.PrimitiveTypes.Float64},
+		}, nil,
+	)
+	bldr := array.NewRecordBuilder(alloc, schema)
+	defer bldr.Release()
+	bldr.Field(0).(*array.Int64Builder).AppendValues([]int64{1, 2, 3}, nil)
+	bldr.Field(1).(*array.Float64Builder).AppendValues([]float64{10.0, 20.0, 30.0}, nil)
+	rec := bldr.NewRecord()
+	defer rec.Release()
+
+	df, err := FromArrow(rec)
+	if err != nil {
+		t.Fatalf("FromArrow() error: %v", err)
+	}
+	rows, cols := df.Shape()
+	if rows != 3 || cols != 2 {
+		t.Fatalf("Shape() = (%d, %d), want (3, 2)", rows, cols)
+	}
+	// Column order should match schema
+	colNames := df.Columns()
+	if colNames[0] != "id" || colNames[1] != "val" {
+		t.Fatalf("Columns() = %v, want [id val]", colNames)
 	}
 }
