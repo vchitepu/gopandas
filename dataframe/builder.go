@@ -1,6 +1,9 @@
 package dataframe
 
-import "github.com/vchitepu/gopandas/series"
+import (
+	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/series"
+)
 
 // Builder enables fluent DataFrame operations with deferred error handling.
 type Builder struct {
@@ -99,5 +102,117 @@ func (b *Builder) Tail(n int) *Builder {
 	}
 
 	b.df = b.df.Tail(n)
+	return b
+}
+
+// ILoc applies DataFrame.ILoc and accumulates any error.
+func (b *Builder) ILoc(rowStart, rowEnd, colStart, colEnd int) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.ILoc(rowStart, rowEnd, colStart, colEnd)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// LocRows applies DataFrame.LocRows and accumulates any error.
+func (b *Builder) LocRows(labels []any) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.LocRows(labels)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// Sample applies DataFrame.Sample and accumulates any error.
+func (b *Builder) Sample(n int, seed int64) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.Sample(n, seed)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// WithColumn applies DataFrame.WithColumn and accumulates any error.
+func (b *Builder) WithColumn(name string, s *series.Series[any]) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.WithColumn(name, s)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// AsType applies DataFrame.AsType and accumulates any error.
+func (b *Builder) AsType(dtypes map[string]dtype.DType) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.AsType(dtypes)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// SetIndex applies DataFrame.SetIndex and accumulates any error.
+func (b *Builder) SetIndex(col string) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.SetIndex(col)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
+	return b
+}
+
+// DropNA applies DataFrame.DropNA and accumulates any error.
+func (b *Builder) DropNA(axis int, how string) *Builder {
+	if b.err != nil {
+		return b
+	}
+
+	df, err := b.df.DropNA(axis, how)
+	if err != nil {
+		b.err = err
+		return b
+	}
+
+	b.df = df
 	return b
 }

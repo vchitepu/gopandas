@@ -164,3 +164,61 @@ func TestBuilder_ErrorShortCircuit(t *testing.T) {
 		t.Fatalf("error short-circuit mutated dataframe:\ngot:\n%s\nwant:\n%s", got.String(), df.String())
 	}
 }
+
+func TestBuilder_ILoc(t *testing.T) {
+	df := builderTestDF(t)
+
+	got, err := df.Build().
+		ILoc(1, 3, 0, 1).
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	if got.Len() != 2 {
+		t.Fatalf("got.Len() = %d, want 2", got.Len())
+	}
+
+	cols := got.Columns()
+	if len(cols) != 1 || cols[0] != "a" {
+		t.Fatalf("got.Columns() = %v, want [a]", cols)
+	}
+
+	v0, err := got.At(0, "a")
+	if err != nil {
+		t.Fatalf("got.At(0, a) error: %v", err)
+	}
+	if v0 != int64(2) {
+		t.Fatalf("got.At(0, a) = %v, want 2", v0)
+	}
+}
+
+func TestBuilder_SetIndex(t *testing.T) {
+	df, err := New(map[string]any{
+		"name": []string{"Alice", "Bob", "Carol"},
+		"age":  []int64{30, 25, 35},
+	})
+	if err != nil {
+		t.Fatalf("New() error: %v", err)
+	}
+
+	got, err := df.Build().
+		SetIndex("name").
+		Result()
+	if err != nil {
+		t.Fatalf("builder Result() error: %v", err)
+	}
+
+	cols := got.Columns()
+	if len(cols) != 1 || cols[0] != "age" {
+		t.Fatalf("got.Columns() = %v, want [age]", cols)
+	}
+
+	v, err := got.Loc("Bob", "age")
+	if err != nil {
+		t.Fatalf("got.Loc(Bob, age) error: %v", err)
+	}
+	if v != int64(25) {
+		t.Fatalf("got.Loc(Bob, age) = %v, want 25", v)
+	}
+}
