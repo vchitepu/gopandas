@@ -7,7 +7,7 @@ const (
 	Invalid    DType = iota // zero value, represents an unknown or unset type
 	Int64                   // 64-bit signed integer
 	Float64                 // 64-bit IEEE 754 floating point
-	String                  // variable-length UTF-8 string
+	String                  // variable-length UTF-8 string (NOTE: this name shadows the Stringer method inside the package; use dtype.String externally)
 	Bool                    // boolean true/false
 	Timestamp               // nanosecond-precision timestamp (UTC)
 	Dictionary              // categorical / dictionary-encoded
