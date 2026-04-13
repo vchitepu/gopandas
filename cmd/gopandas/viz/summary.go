@@ -2,23 +2,26 @@ package viz
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/vchitepu/gopandas/lib/dataframe"
 )
 
+var summaryANSIRE = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
 func RenderSummary(df dataframe.DataFrame, filename string, th Theme, termWidth int) string {
-	innerHint := termWidth - 4
-	if innerHint < 1 {
-		innerHint = 1
+	contentWidth := termWidth - 8
+	if contentWidth < 1 {
+		contentWidth = 1
 	}
 
 	lines := []string{
-		filename,
+		truncateSummaryLine(filename, contentWidth),
 		fmt.Sprintf("%d rows × %d columns", df.Len(), len(df.Columns())),
 		"",
-		sectionSep("COLUMNS", th, innerHint),
+		sectionSep("COLUMNS", th, contentWidth),
 	}
 
 	dtypes := df.DTypes()
@@ -26,23 +29,23 @@ func RenderSummary(df dataframe.DataFrame, filename string, th Theme, termWidth 
 		lines = append(lines, fmt.Sprintf("%s: %s", col, dtypes[col]))
 	}
 
-	lines = append(lines, "", sectionSep("STATISTICS", th, innerHint))
+	lines = append(lines, "", sectionSep("STATISTICS", th, contentWidth))
 	desc := df.Describe()
 	if len(desc.Columns()) == 0 {
 		lines = append(lines, "(no numeric columns)")
 	} else {
 		lines = append(lines, "metrics: count, mean, std, min, max")
-		lines = append(lines, strings.Split(RenderTable(desc, th, innerHint), "\n")...)
+		lines = append(lines, strings.Split(stripSummaryANSI(RenderTable(desc, th, contentWidth)), "\n")...)
 	}
 
-	lines = append(lines, "", sectionSep("PREVIEW", th, innerHint))
-	lines = append(lines, strings.Split(RenderTable(df.Head(5), th, innerHint), "\n")...)
+	lines = append(lines, "", sectionSep("PREVIEW", th, contentWidth))
+	previewLines := strings.Split(stripSummaryANSI(RenderTable(df.Head(5), th, contentWidth)), "\n")
+	previewLines = stripOuterTableBorders(previewLines)
+	lines = append(lines, previewLines...)
 
-	innerWidth := 1
-	for _, line := range lines {
-		if w := visibleLen(line); w > innerWidth {
-			innerWidth = w
-		}
+	innerWidth := contentWidth
+	for i, line := range lines {
+		lines[i] = padRight(truncateSummaryLine(line, innerWidth), innerWidth)
 	}
 
 	top := "┌" + strings.Repeat("─", innerWidth+2) + "┐"
@@ -53,7 +56,7 @@ func RenderSummary(df dataframe.DataFrame, filename string, th Theme, termWidth 
 	b.WriteString("\n")
 	for i, line := range lines {
 		b.WriteString("│ ")
-		b.WriteString(padRight(line, innerWidth))
+		b.WriteString(line)
 		b.WriteString(" │")
 		if i < len(lines)-1 {
 			b.WriteString("\n")
@@ -66,21 +69,68 @@ func RenderSummary(df dataframe.DataFrame, filename string, th Theme, termWidth 
 }
 
 func sectionSep(label string, th Theme, width int) string {
-	styledLabel := th.SectionHeader.Render(label)
 	if width <= 0 {
-		return styledLabel
+		return ""
 	}
 
-	labelWidth := visibleLen(label) + 2
-	if labelWidth >= width {
-		return styledLabel
+	if width == 1 {
+		return "├"
+	}
+	if width == 2 {
+		return "├┤"
 	}
 
-	dashes := width - labelWidth
-	left := dashes / 2
-	right := dashes - left
+	maxLabelWidth := width - 7
+	if maxLabelWidth < 1 {
+		maxLabelWidth = 1
+	}
+	plainLabel := truncateSummaryLine(label, maxLabelWidth)
+	labelWidth := visibleLen(plainLabel)
+	dashes := width - (labelWidth + 6)
+	if dashes < 1 {
+		dashes = 1
+	}
 
-	return strings.Repeat("─", left) + " " + styledLabel + " " + strings.Repeat("─", right)
+	styledLabel := th.SectionHeader.Render(plainLabel)
+	sep := "├─ " + styledLabel + " " + strings.Repeat("─", dashes) + "┤"
+	if visibleLen(stripSummaryANSI(sep)) > width {
+		return truncateSummaryLine(stripSummaryANSI(sep), width)
+	}
+	return sep
+}
+
+func stripOuterTableBorders(lines []string) []string {
+	if len(lines) <= 2 {
+		return lines
+	}
+	return lines[1 : len(lines)-1]
+}
+
+func stripSummaryANSI(s string) string {
+	return summaryANSIRE.ReplaceAllString(s, "")
+}
+
+func truncateSummaryLine(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if visibleLen(s) <= width {
+		return s
+	}
+
+	plain := stripSummaryANSI(s)
+	if visibleLen(plain) <= width {
+		return plain
+	}
+	if width == 1 {
+		return "…"
+	}
+
+	runes := []rune(plain)
+	if len(runes) <= width {
+		return plain
+	}
+	return string(runes[:width-1]) + "…"
 }
 
 func padRight(s string, width int) string {

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/vchitepu/gopandas/lib/dataframe"
 )
 
@@ -111,6 +112,33 @@ func TestRenderSummaryNarrowWidthRenders(t *testing.T) {
 	}
 	if !strings.Contains(out, "┌") || !strings.Contains(out, "┘") {
 		t.Fatalf("expected bordered panel output for narrow width, got: %q", out)
+	}
+}
+
+func TestRenderSummaryRespectsTermWidthCapForNarrowTerm(t *testing.T) {
+	tinyWidth := 24
+	longFilename := "this-is-a-very-long-filename-that-should-not-expand-summary.csv"
+	out := stripANSI(RenderSummary(makeSummaryDF(t), longFilename, DarkTheme(), tinyWidth))
+
+	maxLineWidth := 0
+	for _, line := range strings.Split(out, "\n") {
+		if w := lipgloss.Width(line); w > maxLineWidth {
+			maxLineWidth = w
+		}
+	}
+
+	const tolerance = 2
+	if maxLineWidth > tinyWidth+tolerance {
+		t.Fatalf("expected max line width <= %d, got %d; output: %q", tinyWidth+tolerance, maxLineWidth, out)
+	}
+}
+
+func TestRenderSummarySectionSeparatorUsesSpecShape(t *testing.T) {
+	out := stripANSI(RenderSummary(makeSummaryDF(t), "data.csv", DarkTheme(), 80))
+	for _, token := range []string{"├", "┤"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected output to contain section separator token %q, got: %q", token, out)
+		}
 	}
 }
 
