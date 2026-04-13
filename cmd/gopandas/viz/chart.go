@@ -354,7 +354,268 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 }
 
 func RenderLine(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth int) string {
-	return "[line chart placeholder]"
+	if df.Len() == 0 || len(df.Columns()) == 0 {
+		return "No data to chart"
+	}
+
+	xCol, err := df.Col(opts.XCol)
+	if err != nil {
+		return "No data to chart"
+	}
+	yCol, err := df.Col(opts.YCol)
+	if err != nil {
+		return "No data to chart"
+	}
+
+	points := make([]point, 0, df.Len())
+	for i := 0; i < df.Len(); i++ {
+		xv, xNull := xCol.At(i)
+		yv, yNull := yCol.At(i)
+		if xNull || yNull {
+			continue
+		}
+		points = append(points, point{x: toFloat64(xv), y: toFloat64(yv)})
+	}
+	if len(points) == 0 {
+		return "No data to chart"
+	}
+
+	sortPoints(points)
+
+	minX, maxX := points[0].x, points[0].x
+	minY, maxY := points[0].y, points[0].y
+	for _, p := range points[1:] {
+		if p.x < minX {
+			minX = p.x
+		}
+		if p.x > maxX {
+			maxX = p.x
+		}
+		if p.y < minY {
+			minY = p.y
+		}
+		if p.y > maxY {
+			maxY = p.y
+		}
+	}
+
+	if termWidth <= 0 {
+		termWidth = 80
+	}
+
+	yMaxLabel := formatFloat(maxY)
+	yMidLabel := formatFloat((maxY + minY) / 2)
+	yMinLabel := formatFloat(minY)
+
+	yLabelWidth := runeLen(yMaxLabel)
+	if w := runeLen(yMidLabel); w > yLabelWidth {
+		yLabelWidth = w
+	}
+	if w := runeLen(yMinLabel); w > yLabelWidth {
+		yLabelWidth = w
+	}
+
+	plotCols := termWidth - yLabelWidth - 3
+	if plotCols < 1 {
+		plotCols = 1
+	}
+	plotRows := 8
+
+	dotWidth := plotCols * 2
+	dotHeight := plotRows * 4
+
+	canvas := make([][]uint8, plotRows)
+	for y := range canvas {
+		canvas[y] = make([]uint8, plotCols)
+	}
+
+	scaled := make([][2]int, len(points))
+	for i, p := range points {
+		dx := scaleToDots(p.x, minX, maxX, dotWidth)
+		dy := scaleToDots(p.y, minY, maxY, dotHeight)
+		drawY := (dotHeight - 1) - dy
+		scaled[i] = [2]int{dx, drawY}
+	}
+
+	if len(scaled) == 1 {
+		setBrailleDot(canvas, scaled[0][0], scaled[0][1])
+	} else {
+		for i := 1; i < len(scaled); i++ {
+			plotLine(canvas, scaled[i-1][0], scaled[i-1][1], scaled[i][0], scaled[i][1])
+		}
+	}
+
+	xMinLabel := formatFloat(minX)
+	xMidLabel := formatFloat((minX + maxX) / 2)
+	xMaxLabel := formatFloat(maxX)
+
+	var b strings.Builder
+	if strings.TrimSpace(opts.Title) != "" {
+		title := truncateCell(opts.Title, termWidth)
+		b.WriteString(th.Section.Render(title))
+		b.WriteString("\n")
+	}
+
+	midRow := plotRows / 2
+	for row := 0; row < plotRows; row++ {
+		label := ""
+		switch row {
+		case 0:
+			label = yMaxLabel
+		case midRow:
+			label = yMidLabel
+		case plotRows - 1:
+			label = yMinLabel
+		}
+
+		cells := make([]rune, plotCols)
+		for col := 0; col < plotCols; col++ {
+			cells[col] = brailleBase + rune(canvas[row][col])
+		}
+
+		b.WriteString(th.Chart.Faint(true).Render(fmt.Sprintf("%*s", yLabelWidth, label)))
+		b.WriteString(" |")
+		b.WriteString(th.Chart.Render(string(cells)))
+		b.WriteString("\n")
+	}
+
+	b.WriteString(strings.Repeat(" ", yLabelWidth))
+	b.WriteString(" +")
+	b.WriteString(strings.Repeat("─", plotCols))
+	b.WriteString("\n")
+
+	xAxis := make([]rune, plotCols)
+	for i := range xAxis {
+		xAxis[i] = ' '
+	}
+	placeAxisLabel(xAxis, 0, xMinLabel)
+	placeAxisLabel(xAxis, plotCols/2, xMidLabel)
+	placeAxisLabel(xAxis, plotCols-1, xMaxLabel)
+
+	b.WriteString(strings.Repeat(" ", yLabelWidth))
+	b.WriteString("  ")
+	b.WriteString(th.Chart.Faint(true).Render(string(xAxis)))
+
+	return b.String()
+}
+
+type point struct {
+	x float64
+	y float64
+}
+
+const brailleBase rune = 0x2800
+
+var brailleDotBits = [4][2]uint8{
+	{0x01, 0x08},
+	{0x02, 0x10},
+	{0x04, 0x20},
+	{0x40, 0x80},
+}
+
+func sortPoints(points []point) {
+	for i := 1; i < len(points); i++ {
+		j := i
+		for j > 0 && points[j-1].x > points[j].x {
+			points[j-1], points[j] = points[j], points[j-1]
+			j--
+		}
+	}
+}
+
+func plotLine(canvas [][]uint8, x0, y0, x1, y1 int) {
+	dx := absInt(x1 - x0)
+	sx := -1
+	if x0 < x1 {
+		sx = 1
+	}
+	dy := -absInt(y1 - y0)
+	sy := -1
+	if y0 < y1 {
+		sy = 1
+	}
+	err := dx + dy
+
+	for {
+		setBrailleDot(canvas, x0, y0)
+		if x0 == x1 && y0 == y1 {
+			break
+		}
+		e2 := 2 * err
+		if e2 >= dy {
+			err += dy
+			x0 += sx
+		}
+		if e2 <= dx {
+			err += dx
+			y0 += sy
+		}
+	}
+}
+
+func setBrailleDot(canvas [][]uint8, dotX, dotY int) {
+	if len(canvas) == 0 || len(canvas[0]) == 0 {
+		return
+	}
+	if dotX < 0 || dotY < 0 {
+		return
+	}
+
+	cellX := dotX / 2
+	cellY := dotY / 4
+	if cellY < 0 || cellY >= len(canvas) || cellX < 0 || cellX >= len(canvas[cellY]) {
+		return
+	}
+
+	localX := dotX % 2
+	localY := dotY % 4
+	canvas[cellY][cellX] |= brailleDotBits[localY][localX]
+}
+
+func scaleToDots(v, minV, maxV float64, dotCount int) int {
+	if dotCount <= 1 || math.Abs(maxV-minV) < 1e-9 {
+		return 0
+	}
+	pos := int(math.Round(((v - minV) / (maxV - minV)) * float64(dotCount-1)))
+	if pos < 0 {
+		return 0
+	}
+	if pos >= dotCount {
+		return dotCount - 1
+	}
+	return pos
+}
+
+func placeAxisLabel(line []rune, pos int, text string) {
+	if len(line) == 0 {
+		return
+	}
+	r := []rune(text)
+	if len(r) == 0 {
+		return
+	}
+
+	start := pos - len(r)/2
+	if start < 0 {
+		start = 0
+	}
+	if start+len(r) > len(line) {
+		start = len(line) - len(r)
+		if start < 0 {
+			start = 0
+		}
+	}
+
+	for i := 0; i < len(r) && start+i < len(line); i++ {
+		line[start+i] = r[i]
+	}
+}
+
+func absInt(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }
 
 func aggregateHistogramBins(counts []int, targetBins int) []int {

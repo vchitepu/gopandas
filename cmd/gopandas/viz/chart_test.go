@@ -273,3 +273,80 @@ func TestRenderHistogramKeepsBlocksAfterBinAggregation(t *testing.T) {
 		t.Fatalf("expected output to contain histogram blocks after aggregation, got: %q", out)
 	}
 }
+
+func makeRenderLineDF(t *testing.T) dataframe.DataFrame {
+	t.Helper()
+
+	df, err := dataframe.New(map[string]any{
+		"x": []float64{0, 5, 10},
+		"y": []float64{1, 3, 5},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	return df
+}
+
+func containsBraille(s string) bool {
+	for _, r := range s {
+		if r >= 0x2800 && r <= 0x28FF {
+			return true
+		}
+	}
+
+	return false
+}
+
+func TestRenderLineContainsBrailleChars(t *testing.T) {
+	out := RenderLine(makeRenderLineDF(t), ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+
+	if !containsBraille(out) {
+		t.Fatalf("expected line chart output to contain Braille chars, got: %q", out)
+	}
+}
+
+func TestRenderLineTitlePresence(t *testing.T) {
+	out := RenderLine(makeRenderLineDF(t), ChartOptions{XCol: "x", YCol: "y", Title: "Line Trend"}, Theme{}, 80)
+
+	if !strings.Contains(out, "Line Trend") {
+		t.Fatalf("expected title to be rendered, got: %q", out)
+	}
+}
+
+func TestRenderLineContainsAxisLabels(t *testing.T) {
+	out := RenderLine(makeRenderLineDF(t), ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+
+	for _, token := range []string{"5", "3", "1", "0", "10"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected axis label %q to be present, got: %q", token, out)
+		}
+	}
+}
+
+func TestRenderLineEmptyDataFrameMessage(t *testing.T) {
+	df, err := dataframe.New(map[string]any{"x": []float64{}, "y": []float64{}})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderLine(df, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+	if out != "No data to chart" {
+		t.Fatalf("expected empty dataframe message, got %q", out)
+	}
+}
+
+func TestRenderLineSinglePointRendersBraille(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"x": []float64{7},
+		"y": []float64{11},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderLine(df, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+	if !containsBraille(out) {
+		t.Fatalf("expected single-point line chart to contain Braille chars, got: %q", out)
+	}
+}

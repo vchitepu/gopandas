@@ -148,8 +148,14 @@ func TestRenderDispatchesLineRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != "[line chart placeholder]" {
-		t.Fatalf("expected line placeholder output, got %q", out)
+	if out == "[line chart placeholder]" {
+		t.Fatalf("expected line renderer output, got placeholder %q", out)
+	}
+	if !strings.Contains(out, "employees.csv | name vs salary") {
+		t.Fatalf("expected line chart title in output, got %q", out)
+	}
+	if !strings.Contains(out, "⣿") && !strings.Contains(out, "⡇") {
+		t.Fatalf("expected line chart output to contain Braille glyphs, got %q", out)
 	}
 }
 
