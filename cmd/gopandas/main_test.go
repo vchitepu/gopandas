@@ -36,6 +36,11 @@ func resetFlags() {
 	readFormat = ""
 	readParseDates = ""
 	readDateFormat = ""
+	readViz = ""
+	readX = ""
+	readY = ""
+	readBins = 10
+	readTheme = ""
 
 	// Convert command flags
 	convertFrom = ""
@@ -516,5 +521,130 @@ func TestConvertMissingFile(t *testing.T) {
 	_, err := executeCommand("convert", "testdata/nonexistent.csv", outPath)
 	if err == nil {
 		t.Fatal("expected error for missing input file")
+	}
+}
+
+func TestReadVizTableOutputHasBoxChars(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "table", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "┌") || !strings.Contains(out, "┘") {
+		t.Fatalf("expected table viz output with box chars, got:\n%s", out)
+	}
+}
+
+func TestReadVizSummaryOutputSections(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "summary", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "COLUMNS") {
+		t.Fatalf("expected summary output to contain COLUMNS, got:\n%s", out)
+	}
+	if !strings.Contains(out, "STATISTICS") {
+		t.Fatalf("expected summary output to contain STATISTICS, got:\n%s", out)
+	}
+	if !strings.Contains(out, "PREVIEW") {
+		t.Fatalf("expected summary output to contain PREVIEW, got:\n%s", out)
+	}
+}
+
+func TestReadVizBarOutputHasBlocksAndLabels(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "bar", "--x", "name", "--y", "salary", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "█") {
+		t.Fatalf("expected bar output to contain block glyphs, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Alice") {
+		t.Fatalf("expected bar output to contain labels, got:\n%s", out)
+	}
+}
+
+func TestReadVizHistogramOutputHasBlocks(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "histogram", "--x", "salary", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "█") && !strings.Contains(out, "▇") {
+		t.Fatalf("expected histogram output to contain block glyphs, got:\n%s", out)
+	}
+}
+
+func TestReadVizUnknownTypeErrors(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "--viz", "pie", "testdata/sample.csv")
+	if err == nil {
+		t.Fatal("expected unknown viz type error")
+	}
+	if !strings.Contains(err.Error(), "unknown viz type") {
+		t.Fatalf("expected unknown viz type error, got: %v", err)
+	}
+}
+
+func TestReadVizBadColumnErrors(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "--viz", "bar", "--x", "missing", "--y", "salary", "testdata/sample.csv")
+	if err == nil {
+		t.Fatal("expected missing x column error")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Fatalf("expected column not found error, got: %v", err)
+	}
+}
+
+func TestReadVizNonNumericYErrors(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "--viz", "bar", "--x", "city", "--y", "name", "testdata/sample.csv")
+	if err == nil {
+		t.Fatal("expected non-numeric y column error")
+	}
+	if !strings.Contains(err.Error(), "not numeric") {
+		t.Fatalf("expected non-numeric y error, got: %v", err)
+	}
+}
+
+func TestReadVizPipelineAppliesFilterFirst(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "table", "--filter", "age > 30", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "Charlie") {
+		t.Fatalf("expected filtered output to include Charlie, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Eve") {
+		t.Fatalf("expected filtered output to include Eve, got:\n%s", out)
+	}
+	if strings.Contains(out, "Alice") {
+		t.Fatalf("expected filtered output to exclude Alice, got:\n%s", out)
+	}
+}
+
+func TestReadVizThemeAccepted(t *testing.T) {
+	resetFlags()
+
+	_, err := executeCommand("read", "--viz", "table", "--theme", "light", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("expected --theme to be accepted, got error: %v", err)
 	}
 }

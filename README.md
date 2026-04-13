@@ -219,6 +219,31 @@ gopandas read data.csv --groupby city --agg mean
 gopandas read data.csv --groupby city --agg count
 ```
 
+### Terminal visualizations
+
+```bash
+# table and summary
+gopandas read data.csv --viz table
+gopandas read data.csv --viz summary
+
+# bar chart
+gopandas read data.csv --viz bar --x name --y salary
+
+# histogram (default bins: 10)
+gopandas read data.csv --viz histogram --x salary --bins 12
+
+# line chart + explicit theme
+gopandas read data.csv --viz line --x age --y salary --theme light
+```
+
+Visualization flags for `read`:
+
+- `--viz` (`bar|histogram|line|table|summary`)
+- `--x` (x-axis/label column)
+- `--y` (y-axis/value column)
+- `--bins` (histogram bins, default `10`)
+- `--theme` (`dark|light|auto`; empty uses auto-detection)
+
 ### Write transformed output
 
 ```bash
@@ -246,7 +271,6 @@ Planned for future versions:
 - Excel I/O (`.xlsx`)
 - SQL I/O (`read_sql`, `to_sql`)
 - HDF5 I/O
-- Styler (HTML display formatting)
 - `Period` / `PeriodIndex`
 - `IntervalIndex`
 - Extension types (custom dtypes)

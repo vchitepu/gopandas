@@ -2,12 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/vchitepu/gopandas/cmd/gopandas/viz"
 	"github.com/vchitepu/gopandas/lib/dataframe"
 	csvio "github.com/vchitepu/gopandas/lib/dataio/csv"
 	"github.com/vchitepu/gopandas/lib/groupby"
+	"golang.org/x/term"
 )
 
 // Flag variables for the read subcommand.
@@ -27,6 +31,16 @@ var (
 	readFormat     string
 	readParseDates string
 	readDateFormat string
+	readViz        string
+	readX          string
+	readY          string
+	readBins       int
+	readTheme      string
+)
+
+var (
+	termIsTerminal = term.IsTerminal
+	termGetSize    = term.GetSize
 )
 
 var readCmd = &cobra.Command{
@@ -53,6 +67,11 @@ func init() {
 	readCmd.Flags().StringVar(&readFormat, "format", "", "output format: csv, json, parquet (overrides extension)")
 	readCmd.Flags().StringVar(&readParseDates, "parse-dates", "", "comma-separated CSV columns to parse as dates")
 	readCmd.Flags().StringVar(&readDateFormat, "date-format", "", "CSV date format layout (Go time format), e.g. 01/02/2006")
+	readCmd.Flags().StringVar(&readViz, "viz", "", "render visualization: bar, histogram, line, table, summary")
+	readCmd.Flags().StringVar(&readX, "x", "", "x-axis column for --viz")
+	readCmd.Flags().StringVar(&readY, "y", "", "y-axis column for --viz")
+	readCmd.Flags().IntVar(&readBins, "bins", 10, "number of bins for histogram --viz")
+	readCmd.Flags().StringVar(&readTheme, "theme", "", "viz theme: dark, light, auto")
 
 	rootCmd.AddCommand(readCmd)
 }
@@ -144,6 +163,32 @@ func runRead(cmd *cobra.Command, args []string) error {
 
 	// Display mode
 	out := cmd.OutOrStdout()
+	if readViz != "" {
+		termWidth := 80
+		isTTY := true
+		if f, ok := out.(*os.File); ok {
+			fd := int(f.Fd())
+			isTTY = termIsTerminal(fd)
+			if w, _, err := termGetSize(fd); err == nil && w > 0 {
+				termWidth = w
+			}
+		}
+
+		vizOut, err := viz.Render(df, viz.VizOptions{
+			Type:      strings.ToLower(strings.TrimSpace(readViz)),
+			XCol:      strings.TrimSpace(readX),
+			YCol:      strings.TrimSpace(readY),
+			Bins:      readBins,
+			ThemeMode: strings.TrimSpace(readTheme),
+			Filename:  filepath.Base(path),
+		}, termWidth, isTTY)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintln(out, vizOut)
+		return nil
+	}
 
 	if readShape {
 		rows, cols := df.Shape()
