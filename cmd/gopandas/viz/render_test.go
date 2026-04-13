@@ -110,3 +110,75 @@ func TestResolveColumnNotNumeric(t *testing.T) {
 		t.Fatalf("expected not numeric error, got: %v", err)
 	}
 }
+
+func TestRenderDispatchesBarRoute(t *testing.T) {
+	df := testDF(t)
+
+	out, err := Render(df, VizOptions{Type: "bar", XCol: "name", YCol: "age", Filename: "employees.csv"}, 80, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "[bar chart placeholder]" {
+		t.Fatalf("expected bar placeholder output, got %q", out)
+	}
+}
+
+func TestRenderDispatchesHistogramRoute(t *testing.T) {
+	df := testDF(t)
+
+	out, err := Render(df, VizOptions{Type: "histogram", XCol: "salary", Filename: "employees.csv"}, 80, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "[histogram placeholder]" {
+		t.Fatalf("expected histogram placeholder output, got %q", out)
+	}
+}
+
+func TestRenderDispatchesLineRoute(t *testing.T) {
+	df := testDF(t)
+
+	out, err := Render(df, VizOptions{Type: "line", XCol: "name", YCol: "salary", Filename: "employees.csv"}, 80, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "[line chart placeholder]" {
+		t.Fatalf("expected line placeholder output, got %q", out)
+	}
+}
+
+func TestRenderHistogramBinsZeroUsesDefaultWithoutError(t *testing.T) {
+	df := testDF(t)
+
+	out, err := Render(df, VizOptions{Type: "histogram", XCol: "age", Bins: 0, Filename: "employees.csv"}, 80, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out != "[histogram placeholder]" {
+		t.Fatalf("expected histogram placeholder output, got %q", out)
+	}
+}
+
+func TestBuildChartOptionsTitleFormatHistogram(t *testing.T) {
+	df := testDF(t)
+
+	chartOpts, err := buildChartOptions(df, VizOptions{Type: "histogram", XCol: "salary", Filename: "employees.csv"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chartOpts.Title != "employees.csv | distribution of salary" {
+		t.Fatalf("expected histogram title format, got %q", chartOpts.Title)
+	}
+}
+
+func TestBuildChartOptionsTitleFormatBar(t *testing.T) {
+	df := testDF(t)
+
+	chartOpts, err := buildChartOptions(df, VizOptions{Type: "bar", XCol: "name", YCol: "age", Filename: "employees.csv"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chartOpts.Title != "employees.csv | name vs age" {
+		t.Fatalf("expected bar title format, got %q", chartOpts.Title)
+	}
+}
