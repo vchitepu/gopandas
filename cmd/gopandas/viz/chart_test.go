@@ -3,7 +3,12 @@ package viz
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vchitepu/gopandas/lib/arrowutil"
 	"github.com/vchitepu/gopandas/lib/dataframe"
 )
 
@@ -401,5 +406,57 @@ func TestRenderLineDiagonalUsesMultipleBrailleCells(t *testing.T) {
 
 	if raised < 3 {
 		t.Fatalf("expected diagonal line to raise multiple braille cells, got %d\noutput:\n%s", raised, out)
+	}
+}
+
+func countRaisedBraillePlotColumns(s string) int {
+	lines := strings.Split(s, "\n")
+	cols := map[int]struct{}{}
+
+	for _, line := range lines {
+		sep := strings.Index(line, "|")
+		if sep < 0 {
+			continue
+		}
+
+		plot := []rune(line[sep+1:])
+		for col, r := range plot {
+			if r > brailleBase && r <= 0x28FF {
+				cols[col] = struct{}{}
+			}
+		}
+	}
+
+	return len(cols)
+}
+
+func TestRenderLineTimestampXUsesMultiplePlotColumns(t *testing.T) {
+	alloc := memory.DefaultAllocator
+	times := []time.Time{
+		time.Unix(1704067200, 0).UTC(),
+		time.Unix(1704070800, 0).UTC(),
+		time.Unix(1704074400, 0).UTC(),
+		time.Unix(1704078000, 0).UTC(),
+	}
+	xArr := arrowutil.BuildTimestampArray(alloc, times)
+	defer xArr.Release()
+	yArr := arrowutil.BuildFloat64Array(alloc, []float64{1, 3, 2, 5})
+	defer yArr.Release()
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "x", Type: xArr.DataType()},
+		{Name: "y", Type: yArr.DataType()},
+	}, nil)
+	rec := array.NewRecord(schema, []arrow.Array{xArr, yArr}, int64(len(times)))
+	defer rec.Release()
+
+	df, err := dataframe.FromArrow(rec)
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderLine(df, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+	if got := countRaisedBraillePlotColumns(out); got < 2 {
+		t.Fatalf("expected timestamp x values to spread across multiple plot columns, got %d\noutput:\n%s", got, out)
 	}
 }

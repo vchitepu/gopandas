@@ -5,6 +5,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/vchitepu/gopandas/lib/dataframe"
 )
@@ -374,7 +375,7 @@ func RenderLine(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth i
 		if xNull || yNull {
 			continue
 		}
-		points = append(points, point{x: toFloat64(xv), y: toFloat64(yv)})
+		points = append(points, point{x: toLineXFloat64(xv), y: toFloat64(yv)})
 	}
 	if len(points) == 0 {
 		return "No data to chart"
@@ -651,6 +652,14 @@ func maxHistogramDisplayBins(termWidth, prefixWidth int) int {
 	}
 
 	return maxDisplayBins
+}
+
+func toLineXFloat64(v any) float64 {
+	if ts, ok := v.(time.Time); ok {
+		return float64(ts.UnixNano())
+	}
+
+	return toFloat64(v)
 }
 
 func toFloat64(v any) float64 {
