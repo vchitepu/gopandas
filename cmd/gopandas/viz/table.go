@@ -3,9 +3,11 @@ package viz
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/vchitepu/gopandas/lib/dataframe"
 	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 func RenderTable(df dataframe.DataFrame, th Theme, termWidth int) string {
@@ -29,13 +31,14 @@ func RenderTable(df dataframe.DataFrame, th Theme, termWidth int) string {
 
 	widths := make([]int, len(cols))
 	for i, col := range cols {
-		widths[i] = len(col)
+		widths[i] = runeLen(col)
 	}
 
 	for _, row := range rows {
 		for i, cell := range row {
-			if len(cell) > widths[i] {
-				widths[i] = len(cell)
+			cellWidth := runeLen(cell)
+			if cellWidth > widths[i] {
+				widths[i] = cellWidth
 			}
 		}
 	}
@@ -81,13 +84,27 @@ func RenderTable(df dataframe.DataFrame, th Theme, termWidth int) string {
 }
 
 func rowCells(df dataframe.DataFrame, cols []string) [][]string {
+	seriesByCol := make([]*series.Series[any], len(cols))
+	for i, col := range cols {
+		s, err := df.Col(col)
+		if err != nil {
+			continue
+		}
+		seriesByCol[i] = s
+	}
+
 	rows := make([][]string, 0, df.Len())
 	for i := 0; i < df.Len(); i++ {
 		row := make([]string, 0, len(cols))
-		for _, col := range cols {
-			val, err := df.At(i, col)
-			if err != nil || val == nil {
-				row = append(row, "NaN")
+		for j := range cols {
+			s := seriesByCol[j]
+			if s == nil {
+				row = append(row, "<null>")
+				continue
+			}
+			val, isNull := s.At(i)
+			if isNull {
+				row = append(row, "<null>")
 				continue
 			}
 			row = append(row, fmt.Sprintf("%v", val))
@@ -107,10 +124,7 @@ func hSep(left, mid, right string, widths []int) string {
 
 func padCell(s string, width int, rightAlign bool) string {
 	s = truncateCell(s, width)
-	if len(s) > width {
-		s = s[:width]
-	}
-	padding := width - len(s)
+	padding := width - runeLen(s)
 	if padding < 0 {
 		padding = 0
 	}
@@ -124,13 +138,18 @@ func truncateCell(s string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	if len(s) <= width {
+	if runeLen(s) <= width {
 		return s
 	}
 	if width == 1 {
 		return "…"
 	}
-	return s[:width-1] + "…"
+	runes := []rune(s)
+	return string(runes[:width-1]) + "…"
+}
+
+func runeLen(s string) int {
+	return utf8.RuneCountInString(s)
 }
 
 func fitWidths(widths []int, termWidth int) []int {

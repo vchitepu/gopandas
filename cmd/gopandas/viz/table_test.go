@@ -100,3 +100,50 @@ func TestRenderTableNarrowWidthRenders(t *testing.T) {
 		t.Fatalf("expected bordered table output for narrow width, got: %q", out)
 	}
 }
+
+func TestRenderTableNullRendersAsNullToken(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"name": []any{"Alice", nil, "Charlie"},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderTable(df, Theme{}, 120)
+	if !strings.Contains(out, "<null>") {
+		t.Fatalf("expected output to contain <null>, got: %q", out)
+	}
+}
+
+func TestRenderTableNumericColumnsRightAligned(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"label": []string{"x"},
+		"value": []int64{7},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderTable(df, Theme{}, 120)
+	if !strings.Contains(out, "│     7 │") {
+		t.Fatalf("expected numeric cell to be right-aligned, got: %q", out)
+	}
+}
+
+func TestRenderTableUnicodeTruncationPreservesValidUTF8(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"city": []string{"東京東京東京東京", "Zürich"},
+		"id":   []int64{1, 2},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderTable(df, Theme{}, 18)
+	if strings.TrimSpace(out) == "" {
+		t.Fatal("expected non-empty output")
+	}
+	if strings.Contains(out, "�") {
+		t.Fatalf("expected output without replacement rune artifacts, got: %q", out)
+	}
+}
