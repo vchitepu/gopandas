@@ -80,6 +80,28 @@ func TestRenderBarTitlePresence(t *testing.T) {
 	}
 }
 
+func TestRenderBarTruncatesLongTitleToTerminalWidth(t *testing.T) {
+	out := RenderBar(
+		makeRenderBarDF(t),
+		ChartOptions{XCol: "label", YCol: "value", Title: "VeryLong📊TitleThatShouldBeTrimmed"},
+		Theme{},
+		10,
+	)
+
+	lines := strings.Split(out, "\n")
+	if len(lines) == 0 {
+		t.Fatalf("expected output lines, got: %q", out)
+	}
+
+	titleLine := lines[0]
+	if runeLen(titleLine) > 10 {
+		t.Fatalf("expected title width <= 10 runes, got %d in %q", runeLen(titleLine), titleLine)
+	}
+	if !strings.Contains(titleLine, "…") {
+		t.Fatalf("expected truncated title with ellipsis, got: %q", titleLine)
+	}
+}
+
 func TestRenderBarZeroValueMarker(t *testing.T) {
 	out := RenderBar(makeRenderBarDF(t), ChartOptions{XCol: "label", YCol: "value"}, Theme{}, 80)
 

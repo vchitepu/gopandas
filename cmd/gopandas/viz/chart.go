@@ -107,7 +107,8 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 
 	var b strings.Builder
 	if strings.TrimSpace(opts.Title) != "" {
-		b.WriteString(th.Section.Render(opts.Title))
+		title := truncateCell(opts.Title, termWidth)
+		b.WriteString(th.Section.Render(title))
 		b.WriteString("\n")
 	}
 
