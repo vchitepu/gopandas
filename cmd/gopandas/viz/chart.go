@@ -165,6 +165,9 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 	if bins <= 0 {
 		bins = 10
 	}
+	if termWidth <= 0 {
+		termWidth = 80
+	}
 
 	minVal := values[0]
 	maxVal := values[0]
@@ -206,14 +209,59 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 
 	const plotRows = 8
 	blocks := []rune{'▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'}
-	axisWidth := bins * 2
-	if axisWidth < 1 {
-		axisWidth = 1
-	}
 
 	labelWidth := runeLen(strconv.Itoa(maxCount))
 	if labelWidth < 1 {
 		labelWidth = 1
+	}
+
+	prefixWidth := labelWidth + 2 // "<label> |"
+	maxDisplayBins := maxHistogramDisplayBins(termWidth, prefixWidth)
+	if bins > maxDisplayBins {
+		counts = aggregateHistogramBins(counts, maxDisplayBins)
+		bins = len(counts)
+
+		maxCount = 0
+		for _, c := range counts {
+			if c > maxCount {
+				maxCount = c
+			}
+		}
+		if maxCount == 0 {
+			return "No data to chart"
+		}
+
+		labelWidth = runeLen(strconv.Itoa(maxCount))
+		if labelWidth < 1 {
+			labelWidth = 1
+		}
+		prefixWidth = labelWidth + 2
+
+		maxDisplayBins = maxHistogramDisplayBins(termWidth, prefixWidth)
+		if bins > maxDisplayBins {
+			counts = aggregateHistogramBins(counts, maxDisplayBins)
+			bins = len(counts)
+
+			maxCount = 0
+			for _, c := range counts {
+				if c > maxCount {
+					maxCount = c
+				}
+			}
+			if maxCount == 0 {
+				return "No data to chart"
+			}
+			labelWidth = runeLen(strconv.Itoa(maxCount))
+			if labelWidth < 1 {
+				labelWidth = 1
+			}
+			prefixWidth = labelWidth + 2
+		}
+	}
+
+	plotWidth := bins*2 - 1
+	if plotWidth < 1 {
+		plotWidth = 1
 	}
 
 	barUnits := make([]int, bins)
@@ -254,7 +302,9 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 				ch = blocks[remaining-1]
 			}
 			b.WriteRune(ch)
-			b.WriteRune(' ')
+			if i < bins-1 {
+				b.WriteRune(' ')
+			}
 		}
 
 		b.WriteString("\n")
@@ -262,10 +312,10 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 
 	b.WriteString(strings.Repeat(" ", labelWidth))
 	b.WriteString(" +")
-	b.WriteString(strings.Repeat("─", axisWidth))
+	b.WriteString(strings.Repeat("─", plotWidth))
 	b.WriteString("\n")
 
-	labelLine := make([]rune, axisWidth+1)
+	labelLine := make([]rune, plotWidth)
 	for i := range labelLine {
 		labelLine[i] = ' '
 	}
@@ -276,8 +326,8 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 	}
 	axisLabels := []axisLabel{
 		{pos: 0, text: formatFloat(minVal)},
-		{pos: axisWidth / 2, text: formatFloat((minVal + maxVal) / 2)},
-		{pos: axisWidth - 1, text: formatFloat(maxVal)},
+		{pos: plotWidth / 2, text: formatFloat((minVal + maxVal) / 2)},
+		{pos: plotWidth - 1, text: formatFloat(maxVal)},
 	}
 	for _, lbl := range axisLabels {
 		r := []rune(lbl.text)
@@ -305,6 +355,41 @@ func RenderHistogram(df dataframe.DataFrame, opts ChartOptions, th Theme, termWi
 
 func RenderLine(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth int) string {
 	return "[line chart placeholder]"
+}
+
+func aggregateHistogramBins(counts []int, targetBins int) []int {
+	if targetBins <= 0 || len(counts) == 0 || targetBins >= len(counts) {
+		out := make([]int, len(counts))
+		copy(out, counts)
+		return out
+	}
+
+	aggregated := make([]int, targetBins)
+	ratio := float64(len(counts)) / float64(targetBins)
+
+	for i, c := range counts {
+		idx := int(float64(i) / ratio)
+		if idx >= targetBins {
+			idx = targetBins - 1
+		}
+		aggregated[idx] += c
+	}
+
+	return aggregated
+}
+
+func maxHistogramDisplayBins(termWidth, prefixWidth int) int {
+	plotWidthBudget := termWidth - prefixWidth
+	if plotWidthBudget < 1 {
+		plotWidthBudget = 1
+	}
+
+	maxDisplayBins := (plotWidthBudget + 1) / 2 // one block plus one spacer
+	if maxDisplayBins < 1 {
+		maxDisplayBins = 1
+	}
+
+	return maxDisplayBins
 }
 
 func toFloat64(v any) float64 {

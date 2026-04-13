@@ -7,6 +7,16 @@ import (
 	"github.com/vchitepu/gopandas/lib/dataframe"
 )
 
+func maxLineRuneLen(s string) int {
+	maxLen := 0
+	for _, line := range strings.Split(s, "\n") {
+		if l := runeLen(line); l > maxLen {
+			maxLen = l
+		}
+	}
+	return maxLen
+}
+
 func makeRenderBarDF(t *testing.T) dataframe.DataFrame {
 	t.Helper()
 
@@ -224,5 +234,42 @@ func TestRenderHistogramEmptyDataFrameMessage(t *testing.T) {
 	out := RenderHistogram(df, ChartOptions{XCol: "value", Bins: 8}, Theme{}, 80)
 	if out != "No data to chart" {
 		t.Fatalf("expected empty dataframe message, got %q", out)
+	}
+}
+
+func TestRenderHistogramNarrowWidthDoesNotOverflow(t *testing.T) {
+	values := make([]float64, 0, 120)
+	for i := 0; i < 120; i++ {
+		values = append(values, float64(i%40)+float64(i)/200)
+	}
+
+	df, err := dataframe.New(map[string]any{"value": values})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	const termWidth = 24
+	out := RenderHistogram(df, ChartOptions{XCol: "value", Bins: 64}, Theme{}, termWidth)
+
+	if got := maxLineRuneLen(out); got > termWidth {
+		t.Fatalf("expected max line width <= %d, got %d\noutput:\n%s", termWidth, got, out)
+	}
+}
+
+func TestRenderHistogramKeepsBlocksAfterBinAggregation(t *testing.T) {
+	values := make([]float64, 0, 90)
+	for i := 0; i < 90; i++ {
+		values = append(values, float64(i%30))
+	}
+
+	df, err := dataframe.New(map[string]any{"value": values})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderHistogram(df, ChartOptions{XCol: "value", Bins: 48}, Theme{}, 22)
+
+	if !strings.ContainsAny(out, "▁▂▃▄▅▆▇█") {
+		t.Fatalf("expected output to contain histogram blocks after aggregation, got: %q", out)
 	}
 }
