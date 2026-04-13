@@ -118,8 +118,11 @@ func TestRenderDispatchesBarRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != "[bar chart placeholder]" {
-		t.Fatalf("expected bar placeholder output, got %q", out)
+	if !strings.Contains(out, "employees.csv | name vs age") {
+		t.Fatalf("expected bar output to include title, got %q", out)
+	}
+	if !strings.Contains(out, "█") {
+		t.Fatalf("expected bar output to include block glyphs, got %q", out)
 	}
 }
 
