@@ -133,8 +133,11 @@ func TestRenderDispatchesHistogramRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != "[histogram placeholder]" {
-		t.Fatalf("expected histogram placeholder output, got %q", out)
+	if out == "[histogram placeholder]" {
+		t.Fatalf("expected histogram renderer output, got placeholder %q", out)
+	}
+	if !strings.Contains(out, "employees.csv | distribution of salary") {
+		t.Fatalf("expected histogram title in output, got %q", out)
 	}
 }
 
@@ -157,8 +160,11 @@ func TestRenderHistogramBinsZeroUsesDefaultWithoutError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if out != "[histogram placeholder]" {
-		t.Fatalf("expected histogram placeholder output, got %q", out)
+	if out == "[histogram placeholder]" {
+		t.Fatalf("expected rendered histogram output, got placeholder %q", out)
+	}
+	if !strings.Contains(out, "employees.csv | distribution of age") {
+		t.Fatalf("expected histogram title in output, got %q", out)
 	}
 }
 

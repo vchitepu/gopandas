@@ -161,3 +161,68 @@ func TestRenderBarTruncatesLongLabelWithEllipsis(t *testing.T) {
 		t.Fatalf("expected truncated label with ellipsis, got: %q", out)
 	}
 }
+
+func makeRenderHistogramDF(t *testing.T) dataframe.DataFrame {
+	t.Helper()
+
+	df, err := dataframe.New(map[string]any{
+		"value": []float64{0, 1, 1.1, 2.2, 2.3, 3.9, 4.4, 5.8, 6.2, 7.6, 8.1, 9.5},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	return df
+}
+
+func TestRenderHistogramContainsBlockChars(t *testing.T) {
+	out := RenderHistogram(makeRenderHistogramDF(t), ChartOptions{XCol: "value", Bins: 6}, Theme{}, 80)
+
+	if !strings.ContainsAny(out, "▁▂▃▄▅▆▇█") {
+		t.Fatalf("expected output to contain histogram block chars, got: %q", out)
+	}
+}
+
+func TestRenderHistogramContainsAxisAndBoundaryLabels(t *testing.T) {
+	out := RenderHistogram(makeRenderHistogramDF(t), ChartOptions{XCol: "value", Bins: 6}, Theme{}, 80)
+
+	if !strings.Contains(out, "─") {
+		t.Fatalf("expected x-axis line to be present, got: %q", out)
+	}
+	for _, token := range []string{"0", "4.75", "9.5"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected boundary label %q to be present, got: %q", token, out)
+		}
+	}
+}
+
+func TestRenderHistogramTitlePresence(t *testing.T) {
+	out := RenderHistogram(makeRenderHistogramDF(t), ChartOptions{XCol: "value", Bins: 6, Title: "Value Distribution"}, Theme{}, 80)
+
+	if !strings.Contains(out, "Value Distribution") {
+		t.Fatalf("expected title to be rendered, got: %q", out)
+	}
+}
+
+func TestRenderHistogramDefaultBinsAndNonEmptyOutput(t *testing.T) {
+	out := RenderHistogram(makeRenderHistogramDF(t), ChartOptions{XCol: "value", Bins: 0}, Theme{}, 80)
+
+	if strings.TrimSpace(out) == "" {
+		t.Fatalf("expected non-empty histogram output")
+	}
+	if strings.Count(out, "─") < 10 {
+		t.Fatalf("expected default 10-bin axis width, got output: %q", out)
+	}
+}
+
+func TestRenderHistogramEmptyDataFrameMessage(t *testing.T) {
+	df, err := dataframe.New(map[string]any{"value": []float64{}})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderHistogram(df, ChartOptions{XCol: "value", Bins: 8}, Theme{}, 80)
+	if out != "No data to chart" {
+		t.Fatalf("expected empty dataframe message, got %q", out)
+	}
+}
