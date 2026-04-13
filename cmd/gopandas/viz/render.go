@@ -106,10 +106,6 @@ func buildChartOptions(df dataframe.DataFrame, opts VizOptions) (ChartOptions, e
 
 func resolveColumn(df dataframe.DataFrame, explicit string, axis string, requireNumeric bool) (string, error) {
 	columns := df.Columns()
-	if len(columns) == 0 {
-		return "", fmt.Errorf("dataframe has no columns")
-	}
-
 	dtypes := df.DTypes()
 
 	if explicit != "" {
@@ -134,7 +130,11 @@ func resolveColumn(df dataframe.DataFrame, explicit string, axis string, require
 				return col, nil
 			}
 		}
-		return "", fmt.Errorf("no numeric columns available for --%s", axis)
+		return "", fmt.Errorf("no numeric column found for --%s default (available: %s)", axis, strings.Join(columns, ", "))
+	}
+
+	if len(columns) == 0 {
+		return "", fmt.Errorf("DataFrame has no columns")
 	}
 
 	return columns[0], nil
