@@ -290,7 +290,7 @@ func makeRenderLineDF(t *testing.T) dataframe.DataFrame {
 
 func containsBraille(s string) bool {
 	for _, r := range s {
-		if r >= 0x2800 && r <= 0x28FF {
+		if r > 0x2800 && r <= 0x28FF {
 			return true
 		}
 	}

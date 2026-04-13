@@ -3,7 +3,12 @@ package viz
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vchitepu/gopandas/lib/arrowutil"
 	"github.com/vchitepu/gopandas/lib/dataframe"
 	"github.com/vchitepu/gopandas/lib/dtype"
 )
@@ -62,7 +67,7 @@ func TestRenderNotTTYFallsBack(t *testing.T) {
 func TestResolveXDefault(t *testing.T) {
 	df := testDF(t)
 
-	col, err := resolveColumn(df, "", "x", false)
+	col, err := resolveColumn(df, "", "x", columnRequirementAny)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -76,7 +81,7 @@ func TestResolveXDefault(t *testing.T) {
 func TestResolveYNumericDefault(t *testing.T) {
 	df := testDF(t)
 
-	col, err := resolveColumn(df, "", "y", true)
+	col, err := resolveColumn(df, "", "y", columnRequirementNumeric)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -90,7 +95,7 @@ func TestResolveYNumericDefault(t *testing.T) {
 func TestResolveColumnNotFound(t *testing.T) {
 	df := testDF(t)
 
-	_, err := resolveColumn(df, "missing", "x", false)
+	_, err := resolveColumn(df, "missing", "x", columnRequirementAny)
 	if err == nil {
 		t.Fatal("expected not found error")
 	}
@@ -102,7 +107,7 @@ func TestResolveColumnNotFound(t *testing.T) {
 func TestResolveColumnNotNumeric(t *testing.T) {
 	df := testDF(t)
 
-	_, err := resolveColumn(df, "name", "y", true)
+	_, err := resolveColumn(df, "name", "y", columnRequirementNumeric)
 	if err == nil {
 		t.Fatal("expected not numeric error")
 	}
@@ -144,19 +149,77 @@ func TestRenderDispatchesHistogramRoute(t *testing.T) {
 func TestRenderDispatchesLineRoute(t *testing.T) {
 	df := testDF(t)
 
-	out, err := Render(df, VizOptions{Type: "line", XCol: "name", YCol: "salary", Filename: "employees.csv"}, 80, true)
+	out, err := Render(df, VizOptions{Type: "line", XCol: "age", YCol: "salary", Filename: "employees.csv"}, 80, true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if out == "[line chart placeholder]" {
 		t.Fatalf("expected line renderer output, got placeholder %q", out)
 	}
-	if !strings.Contains(out, "employees.csv | name vs salary") {
+	if !strings.Contains(out, "employees.csv | age vs salary") {
 		t.Fatalf("expected line chart title in output, got %q", out)
 	}
-	if !strings.Contains(out, "⣿") && !strings.Contains(out, "⡇") {
+	if !containsRaisedBraille(out) {
 		t.Fatalf("expected line chart output to contain Braille glyphs, got %q", out)
 	}
+}
+
+func TestRenderLineRejectsNonNumericAndNonTimestampX(t *testing.T) {
+	df := testDF(t)
+
+	_, err := Render(df, VizOptions{Type: "line", XCol: "name", YCol: "salary", Filename: "employees.csv"}, 80, true)
+	if err == nil {
+		t.Fatal("expected error for line chart with string x column")
+	}
+	if !strings.Contains(err.Error(), "must be numeric or timestamp") {
+		t.Fatalf("expected numeric or timestamp x error, got: %v", err)
+	}
+}
+
+func TestRenderLineAcceptsTimestampX(t *testing.T) {
+	alloc := memory.DefaultAllocator
+	times := []time.Time{
+		time.Unix(1704067200, 0).UTC(),
+		time.Unix(1704070800, 0).UTC(),
+		time.Unix(1704074400, 0).UTC(),
+	}
+	whenArr := arrowutil.BuildTimestampArray(alloc, times)
+	defer whenArr.Release()
+	valueArr := arrowutil.BuildFloat64Array(alloc, []float64{1.2, 3.4, 2.1})
+	defer valueArr.Release()
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "when", Type: whenArr.DataType()},
+		{Name: "value", Type: valueArr.DataType()},
+	}, nil)
+	rec := array.NewRecord(schema, []arrow.Array{whenArr, valueArr}, int64(len(times)))
+	defer rec.Release()
+
+	df, err := dataframe.FromArrow(rec)
+	if err != nil {
+		t.Fatalf("failed to build test dataframe: %v", err)
+	}
+
+	out, err := Render(df, VizOptions{Type: "line", XCol: "when", YCol: "value", Filename: "series.csv"}, 80, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out == "[line chart placeholder]" {
+		t.Fatalf("expected line renderer output, got placeholder %q", out)
+	}
+	if !strings.Contains(out, "series.csv | when vs value") {
+		t.Fatalf("expected line chart title in output, got %q", out)
+	}
+}
+
+func containsRaisedBraille(s string) bool {
+	for _, r := range s {
+		if r > 0x2800 && r <= 0x28FF {
+			return true
+		}
+	}
+
+	return false
 }
 
 func TestRenderHistogramBinsZeroUsesDefaultWithoutError(t *testing.T) {

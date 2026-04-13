@@ -67,17 +67,27 @@ func Render(df dataframe.DataFrame, opts VizOptions, termWidth int, isTTY bool) 
 }
 
 func buildChartOptions(df dataframe.DataFrame, opts VizOptions) (ChartOptions, error) {
-	requireNumericX := opts.Type == "histogram"
-	requireNumericY := opts.Type == "bar" || opts.Type == "line"
+	xRequirement := columnRequirementAny
+	if opts.Type == "histogram" {
+		xRequirement = columnRequirementNumeric
+	}
+	if opts.Type == "line" {
+		xRequirement = columnRequirementNumericOrTimestamp
+	}
 
-	xCol, err := resolveColumn(df, opts.XCol, "x", requireNumericX)
+	yRequirement := columnRequirementAny
+	if opts.Type == "bar" || opts.Type == "line" {
+		yRequirement = columnRequirementNumeric
+	}
+
+	xCol, err := resolveColumn(df, opts.XCol, "x", xRequirement)
 	if err != nil {
 		return ChartOptions{}, err
 	}
 
 	yCol := ""
 	if opts.Type != "histogram" {
-		yCol, err = resolveColumn(df, opts.YCol, "y", requireNumericY)
+		yCol, err = resolveColumn(df, opts.YCol, "y", yRequirement)
 		if err != nil {
 			return ChartOptions{}, err
 		}
@@ -104,7 +114,15 @@ func buildChartOptions(df dataframe.DataFrame, opts VizOptions) (ChartOptions, e
 	}, nil
 }
 
-func resolveColumn(df dataframe.DataFrame, explicit string, axis string, requireNumeric bool) (string, error) {
+type columnRequirement int
+
+const (
+	columnRequirementAny columnRequirement = iota
+	columnRequirementNumeric
+	columnRequirementNumericOrTimestamp
+)
+
+func resolveColumn(df dataframe.DataFrame, explicit string, axis string, requirement columnRequirement) (string, error) {
 	columns := df.Columns()
 	dtypes := df.DTypes()
 
@@ -113,24 +131,33 @@ func resolveColumn(df dataframe.DataFrame, explicit string, axis string, require
 			return "", fmt.Errorf("--%s column %q not found (available: %s)", axis, explicit, strings.Join(columns, ", "))
 		}
 
-		if requireNumeric {
-			dt := dtypes[explicit]
-			if dt != dtype.Int64 && dt != dtype.Float64 {
+		dt := dtypes[explicit]
+		if !columnSatisfiesRequirement(dt, requirement) {
+			switch requirement {
+			case columnRequirementNumeric:
 				return "", fmt.Errorf("--%s column %q is not numeric (dtype: %s)", axis, explicit, dt)
+			case columnRequirementNumericOrTimestamp:
+				return "", fmt.Errorf("--%s column %q must be numeric or timestamp (dtype: %s)", axis, explicit, dt)
 			}
 		}
 
 		return explicit, nil
 	}
 
-	if requireNumeric {
+	if requirement != columnRequirementAny {
 		for _, col := range columns {
 			dt := dtypes[col]
-			if dt == dtype.Int64 || dt == dtype.Float64 {
+			if columnSatisfiesRequirement(dt, requirement) {
 				return col, nil
 			}
 		}
-		return "", fmt.Errorf("no numeric column found for --%s default (available: %s)", axis, strings.Join(columns, ", "))
+
+		switch requirement {
+		case columnRequirementNumeric:
+			return "", fmt.Errorf("no numeric column found for --%s default (available: %s)", axis, strings.Join(columns, ", "))
+		case columnRequirementNumericOrTimestamp:
+			return "", fmt.Errorf("no numeric or timestamp column found for --%s default (available: %s)", axis, strings.Join(columns, ", "))
+		}
 	}
 
 	if len(columns) == 0 {
@@ -138,6 +165,19 @@ func resolveColumn(df dataframe.DataFrame, explicit string, axis string, require
 	}
 
 	return columns[0], nil
+}
+
+func columnSatisfiesRequirement(dt dtype.DType, requirement columnRequirement) bool {
+	switch requirement {
+	case columnRequirementAny:
+		return true
+	case columnRequirementNumeric:
+		return dt == dtype.Int64 || dt == dtype.Float64
+	case columnRequirementNumericOrTimestamp:
+		return dt == dtype.Int64 || dt == dtype.Float64 || dt == dtype.Timestamp
+	default:
+		return false
+	}
 }
 
 func isValidVizType(vizType string) bool {
