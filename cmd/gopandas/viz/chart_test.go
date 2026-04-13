@@ -298,6 +298,17 @@ func containsBraille(s string) bool {
 	return false
 }
 
+func countRaisedBrailleCells(s string) int {
+	count := 0
+	for _, r := range s {
+		if r > brailleBase && r <= 0x28FF {
+			count++
+		}
+	}
+
+	return count
+}
+
 func TestRenderLineContainsBrailleChars(t *testing.T) {
 	out := RenderLine(makeRenderLineDF(t), ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
 
@@ -348,5 +359,47 @@ func TestRenderLineSinglePointRendersBraille(t *testing.T) {
 	out := RenderLine(df, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
 	if !containsBraille(out) {
 		t.Fatalf("expected single-point line chart to contain Braille chars, got: %q", out)
+	}
+}
+
+func TestRenderLineUnsortedXMatchesSortedOutput(t *testing.T) {
+	sortedDF, err := dataframe.New(map[string]any{
+		"x": []float64{0, 2, 4, 6, 8},
+		"y": []float64{1, 5, 3, 7, 4},
+	})
+	if err != nil {
+		t.Fatalf("failed to build sorted dataframe: %v", err)
+	}
+
+	unsortedDF, err := dataframe.New(map[string]any{
+		"x": []float64{6, 0, 8, 2, 4},
+		"y": []float64{7, 1, 4, 5, 3},
+	})
+	if err != nil {
+		t.Fatalf("failed to build unsorted dataframe: %v", err)
+	}
+
+	sortedOut := RenderLine(sortedDF, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+	unsortedOut := RenderLine(unsortedDF, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+
+	if unsortedOut != sortedOut {
+		t.Fatalf("expected unsorted x input to render same chart as sorted input\nsorted:\n%s\nunsorted:\n%s", sortedOut, unsortedOut)
+	}
+}
+
+func TestRenderLineDiagonalUsesMultipleBrailleCells(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"x": []float64{0, 1, 2, 3, 4, 5},
+		"y": []float64{0, 1, 2, 3, 4, 5},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderLine(df, ChartOptions{XCol: "x", YCol: "y"}, Theme{}, 80)
+	raised := countRaisedBrailleCells(out)
+
+	if raised < 3 {
+		t.Fatalf("expected diagonal line to raise multiple braille cells, got %d\noutput:\n%s", raised, out)
 	}
 }
