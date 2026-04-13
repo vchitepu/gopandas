@@ -49,6 +49,7 @@ func sameTheme(a, b Theme) bool {
 	return a.Text.Render(sample) == b.Text.Render(sample) &&
 		a.Section.Render(sample) == b.Section.Render(sample) &&
 		a.Table.Render(sample) == b.Table.Render(sample) &&
+		a.TableHeader.Render(sample) == b.TableHeader.Render(sample) &&
 		a.Chart.Render(sample) == b.Chart.Render(sample) &&
 		a.Panel.Render(sample) == b.Panel.Render(sample)
 }
