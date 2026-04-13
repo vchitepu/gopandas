@@ -106,3 +106,36 @@ func TestRenderBarEmptyDataFrameMessage(t *testing.T) {
 		t.Fatalf("expected empty dataframe message, got %q", out)
 	}
 }
+
+func TestRenderBarNarrowWidthKeepsMarkers(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"label": []string{"Alpha", "Beta", "Gamma", "Zero"},
+		"value": []int64{10, -3, 4, 0},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderBar(df, ChartOptions{XCol: "label", YCol: "value"}, Theme{}, 12)
+
+	for _, token := range []string{"█", "░", "▏"} {
+		if !strings.Contains(out, token) {
+			t.Fatalf("expected output to contain %q under narrow width, got: %q", token, out)
+		}
+	}
+}
+
+func TestRenderBarTruncatesLongLabelWithEllipsis(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"label": []string{"SuperLongLabelNameThatShouldBeTrimmed"},
+		"value": []int64{7},
+	})
+	if err != nil {
+		t.Fatalf("failed to build dataframe: %v", err)
+	}
+
+	out := RenderBar(df, ChartOptions{XCol: "label", YCol: "value"}, Theme{}, 18)
+	if !strings.Contains(out, "…") {
+		t.Fatalf("expected truncated label with ellipsis, got: %q", out)
+	}
+}

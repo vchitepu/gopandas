@@ -33,6 +33,7 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 	maxLabelWidth := 0
 	maxValueWidth := 1
 	maxAbs := 0.0
+	const maxValueColumnWidth = 12
 
 	for i := 0; i < df.Len(); i++ {
 		labelVal, labelNull := labels.At(i)
@@ -48,6 +49,9 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 			value = toFloat64(valueVal)
 		}
 		valueText := formatFloat(value)
+		if runeLen(valueText) > maxValueColumnWidth {
+			valueText = truncateCell(valueText, maxValueColumnWidth)
+		}
 
 		if w := runeLen(label); w > maxLabelWidth {
 			maxLabelWidth = w
@@ -67,9 +71,35 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 	if termWidth <= 0 {
 		termWidth = 80
 	}
-	barWidth := termWidth - maxLabelWidth - maxValueWidth - 4
-	if barWidth < 3 {
-		barWidth = 3
+
+	valueWidth := maxValueWidth
+	if valueWidth > maxValueColumnWidth {
+		valueWidth = maxValueColumnWidth
+	}
+	if valueWidth < 1 {
+		valueWidth = 1
+	}
+	if maxAllowed := termWidth - 3; maxAllowed > 0 && valueWidth > maxAllowed {
+		valueWidth = maxAllowed
+	}
+
+	available := termWidth - valueWidth - 2
+	if available < 1 {
+		available = 1
+	}
+
+	labelWidth := maxLabelWidth
+	maxLabelBudget := available - 1
+	if maxLabelBudget < 0 {
+		maxLabelBudget = 0
+	}
+	if labelWidth > maxLabelBudget {
+		labelWidth = maxLabelBudget
+	}
+
+	barWidth := available - labelWidth
+	if barWidth < 1 {
+		barWidth = 1
 	}
 
 	posStyle := th.Chart
@@ -82,6 +112,9 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 	}
 
 	for i, r := range rows {
+		label := truncateCell(r.label, labelWidth)
+		valueText := truncateCell(r.text, valueWidth)
+
 		bar := "▏"
 		if r.value != 0 && maxAbs > 0 {
 			length := int(math.Round((math.Abs(r.value) / maxAbs) * float64(barWidth)))
@@ -95,7 +128,7 @@ func RenderBar(df dataframe.DataFrame, opts ChartOptions, th Theme, termWidth in
 			}
 		}
 
-		line := fmt.Sprintf("%-*s %s %*s", maxLabelWidth, r.label, bar, maxValueWidth, r.text)
+		line := fmt.Sprintf("%-*s %s %*s", labelWidth, label, bar, valueWidth, valueText)
 		b.WriteString(line)
 		if i < len(rows)-1 {
 			b.WriteString("\n")
