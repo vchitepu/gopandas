@@ -9,21 +9,23 @@ import (
 )
 
 type Theme struct {
-	Text        lipgloss.Style
-	Section     lipgloss.Style
-	Table       lipgloss.Style
-	TableHeader lipgloss.Style
-	Chart       lipgloss.Style
-	Panel       lipgloss.Style
+	Text          lipgloss.Style
+	Section       lipgloss.Style
+	SectionHeader lipgloss.Style
+	Table         lipgloss.Style
+	TableHeader   lipgloss.Style
+	Chart         lipgloss.Style
+	Panel         lipgloss.Style
 }
 
 func DarkTheme() Theme {
 	return Theme{
-		Text:        lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
-		Section:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("117")),
-		Table:       lipgloss.NewStyle().Foreground(lipgloss.Color("250")),
-		TableHeader: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("153")),
-		Chart:       lipgloss.NewStyle().Foreground(lipgloss.Color("221")),
+		Text:          lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
+		Section:       lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("117")),
+		SectionHeader: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("117")),
+		Table:         lipgloss.NewStyle().Foreground(lipgloss.Color("250")),
+		TableHeader:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("153")),
+		Chart:         lipgloss.NewStyle().Foreground(lipgloss.Color("221")),
 		Panel: lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("63")).
@@ -33,11 +35,12 @@ func DarkTheme() Theme {
 
 func LightTheme() Theme {
 	return Theme{
-		Text:        lipgloss.NewStyle().Foreground(lipgloss.Color("236")),
-		Section:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("25")),
-		Table:       lipgloss.NewStyle().Foreground(lipgloss.Color("238")),
-		TableHeader: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("24")),
-		Chart:       lipgloss.NewStyle().Foreground(lipgloss.Color("27")),
+		Text:          lipgloss.NewStyle().Foreground(lipgloss.Color("236")),
+		Section:       lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("25")),
+		SectionHeader: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("25")),
+		Table:         lipgloss.NewStyle().Foreground(lipgloss.Color("238")),
+		TableHeader:   lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("24")),
+		Chart:         lipgloss.NewStyle().Foreground(lipgloss.Color("27")),
 		Panel: lipgloss.NewStyle().
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("245")).
