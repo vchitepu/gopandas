@@ -165,12 +165,14 @@ func runRead(cmd *cobra.Command, args []string) error {
 	out := cmd.OutOrStdout()
 	if readViz != "" {
 		termWidth := 80
-		isTTY := true
+		isTTY := false
 		if f, ok := out.(*os.File); ok {
 			fd := int(f.Fd())
-			isTTY = termIsTerminal(fd)
-			if w, _, err := termGetSize(fd); err == nil && w > 0 {
-				termWidth = w
+			if termIsTerminal(fd) {
+				isTTY = true
+				if w, _, err := termGetSize(fd); err == nil && w > 0 {
+					termWidth = w
+				}
 			}
 		}
 

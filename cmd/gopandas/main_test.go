@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,12 +11,40 @@ import (
 
 // executeCommand runs the root cobra command with the given args and captures output.
 func executeCommand(args ...string) (string, error) {
-	buf := new(bytes.Buffer)
-	rootCmd.SetOut(buf)
-	rootCmd.SetErr(buf)
+	prevIsTerminal := termIsTerminal
+	prevGetSize := termGetSize
+	defer func() {
+		termIsTerminal = prevIsTerminal
+		termGetSize = prevGetSize
+	}()
+
+	termIsTerminal = func(fd int) bool { return true }
+	termGetSize = func(fd int) (int, int, error) { return 80, 24, nil }
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	var buf bytes.Buffer
+	copyDone := make(chan error, 1)
+	go func() {
+		_, copyErr := io.Copy(&buf, r)
+		copyDone <- copyErr
+	}()
+
+	rootCmd.SetOut(w)
+	rootCmd.SetErr(w)
 	rootCmd.SetArgs(args)
-	err := rootCmd.Execute()
-	return buf.String(), err
+	execErr := rootCmd.Execute()
+	_ = w.Close()
+
+	if readErr := <-copyDone; readErr != nil {
+		return "", readErr
+	}
+
+	return buf.String(), execErr
 }
 
 // resetFlags resets all package-level flag variables to their zero values
@@ -646,5 +675,49 @@ func TestReadVizThemeAccepted(t *testing.T) {
 	_, err := executeCommand("read", "--viz", "table", "--theme", "light", "testdata/sample.csv")
 	if err != nil {
 		t.Fatalf("expected --theme to be accepted, got error: %v", err)
+	}
+}
+
+func TestReadVizNonTTYBufferFallsBackToDataFrame(t *testing.T) {
+	resetFlags()
+
+	prevIsTerminal := termIsTerminal
+	prevGetSize := termGetSize
+	t.Cleanup(func() {
+		termIsTerminal = prevIsTerminal
+		termGetSize = prevGetSize
+	})
+
+	termIsTerminal = func(fd int) bool { return false }
+	termGetSize = func(fd int) (int, int, error) { return 0, 0, nil }
+
+	buf := new(bytes.Buffer)
+	rootCmd.SetOut(buf)
+	rootCmd.SetErr(buf)
+	rootCmd.SetArgs([]string{"read", "--viz", "table", "testdata/sample.csv"})
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	out := buf.String()
+	if strings.Contains(out, "┌") || strings.Contains(out, "┘") {
+		t.Fatalf("expected non-tty output to fall back to dataframe string, got:\n%s", out)
+	}
+	if !strings.Contains(out, "Alice") {
+		t.Fatalf("expected fallback output to contain dataframe rows, got:\n%s", out)
+	}
+}
+
+func TestReadVizLineSmoke(t *testing.T) {
+	resetFlags()
+
+	out, err := executeCommand("read", "--viz", "line", "--x", "age", "--y", "salary", "testdata/sample.csv")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(out, "sample.csv | age vs salary") {
+		t.Fatalf("expected line viz output title, got:\n%s", out)
 	}
 }
