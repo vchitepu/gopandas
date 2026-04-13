@@ -87,7 +87,7 @@ func buildChartOptions(df dataframe.DataFrame, opts VizOptions) (ChartOptions, e
 
 	yCol := ""
 	if opts.Type != "histogram" {
-		yCol, err = resolveColumn(df, opts.YCol, "y", yRequirement)
+		yCol, err = resolveYColumn(df, opts, xCol, yRequirement)
 		if err != nil {
 			return ChartOptions{}, err
 		}
@@ -165,6 +165,36 @@ func resolveColumn(df dataframe.DataFrame, explicit string, axis string, require
 	}
 
 	return columns[0], nil
+}
+
+func resolveYColumn(df dataframe.DataFrame, opts VizOptions, xCol string, requirement columnRequirement) (string, error) {
+	if opts.YCol != "" {
+		return resolveColumn(df, opts.YCol, "y", requirement)
+	}
+
+	if (opts.Type == "bar" || opts.Type == "line") && requirement == columnRequirementNumeric {
+		columns := df.Columns()
+		dtypes := df.DTypes()
+
+		for _, col := range columns {
+			if col == xCol {
+				continue
+			}
+
+			dt := dtypes[col]
+			if columnSatisfiesRequirement(dt, requirement) {
+				return col, nil
+			}
+		}
+
+		xType, ok := dtypes[xCol]
+		if ok && columnSatisfiesRequirement(xType, requirement) {
+			// If only one numeric column exists and x uses it, allow y=x fallback.
+			return xCol, nil
+		}
+	}
+
+	return resolveColumn(df, "", "y", requirement)
 }
 
 func columnSatisfiesRequirement(dt dtype.DType, requirement columnRequirement) bool {

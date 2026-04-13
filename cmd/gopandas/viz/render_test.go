@@ -260,3 +260,60 @@ func TestBuildChartOptionsTitleFormatBar(t *testing.T) {
 		t.Fatalf("expected bar title format, got %q", chartOpts.Title)
 	}
 }
+
+func TestBuildChartOptionsBarDefaultYPrefersDifferentNumericColumn(t *testing.T) {
+	df := testDF(t)
+	columns := df.Columns()
+	if len(columns) == 0 {
+		t.Fatal("expected dataframe to have columns")
+	}
+	firstCol := columns[0]
+	dtypes := df.DTypes()
+
+	firstNumericNotX := ""
+	for _, col := range columns {
+		if col == firstCol {
+			continue
+		}
+		dt := dtypes[col]
+		if dt == dtype.Int64 || dt == dtype.Float64 {
+			firstNumericNotX = col
+			break
+		}
+	}
+	if firstNumericNotX == "" {
+		t.Fatal("expected dataframe to include a numeric column different from first column")
+	}
+
+	chartOpts, err := buildChartOptions(df, VizOptions{Type: "bar", Filename: "employees.csv"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chartOpts.XCol == chartOpts.YCol {
+		t.Fatalf("expected default y to differ from x when alternate numeric column exists, got x=%q y=%q", chartOpts.XCol, chartOpts.YCol)
+	}
+	if chartOpts.XCol != firstCol {
+		t.Fatalf("expected default x to be first column %q, got %q", firstCol, chartOpts.XCol)
+	}
+	if chartOpts.YCol != firstNumericNotX {
+		t.Fatalf("expected default y to pick first numeric column not equal to x (%q), got %q", firstNumericNotX, chartOpts.YCol)
+	}
+}
+
+func TestBuildChartOptionsLineDefaultYFallsBackToSameAsXWhenOnlyOneNumericColumn(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"value": []int64{10, 20, 30},
+		"name":  []string{"a", "b", "c"},
+	})
+	if err != nil {
+		t.Fatalf("failed to build test dataframe: %v", err)
+	}
+
+	chartOpts, err := buildChartOptions(df, VizOptions{Type: "line", Filename: "series.csv"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chartOpts.XCol != "value" || chartOpts.YCol != "value" {
+		t.Fatalf("expected default x/y to fall back to same numeric column, got x=%q y=%q", chartOpts.XCol, chartOpts.YCol)
+	}
+}
