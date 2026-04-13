@@ -1,0 +1,828 @@
+package groupby
+
+import (
+	"math"
+	"testing"
+
+	"github.com/vchitepu/gopandas/lib/dataframe"
+)
+
+func testDF(t *testing.T) dataframe.DataFrame {
+	t.Helper()
+	df, err := dataframe.New(map[string]any{
+		"name":   []string{"Alice", "Bob", "Charlie", "Diana", "Eve"},
+		"dept":   []string{"Eng", "Sales", "Eng", "Sales", "Eng"},
+		"salary": []float64{100000, 80000, 120000, 90000, 110000},
+	})
+	if err != nil {
+		t.Fatalf("testDF: %v", err)
+	}
+	return df
+}
+
+func testMultiKeyDF(t *testing.T) dataframe.DataFrame {
+	t.Helper()
+	df, err := dataframe.New(map[string]any{
+		"dept":   []string{"Eng", "Sales", "Eng", "Sales", "Eng"},
+		"level":  []string{"Senior", "Junior", "Junior", "Senior", "Senior"},
+		"salary": []float64{120000, 60000, 80000, 100000, 130000},
+	})
+	if err != nil {
+		t.Fatalf("testMultiKeyDF: %v", err)
+	}
+	return df
+}
+
+func TestNewGroupBy_SingleKey(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	if gb.NGroups() != 2 {
+		t.Errorf("NGroups() = %d, want 2", gb.NGroups())
+	}
+}
+
+func TestNewGroupBy_MultiKey(t *testing.T) {
+	df := testMultiKeyDF(t)
+	gb := NewGroupBy(df, "dept", "level")
+	if gb.NGroups() != 4 {
+		t.Errorf("NGroups() = %d, want 4", gb.NGroups())
+	}
+}
+
+func TestNewGroupBy_MultiKey_GroupContents(t *testing.T) {
+	df := testMultiKeyDF(t)
+	gb := NewGroupBy(df, "dept", "level")
+	groups := gb.Groups()
+	engSenior, ok := groups["Eng|Senior"]
+	if !ok {
+		t.Fatal("Groups() missing key 'Eng|Senior'")
+	}
+	if len(engSenior) != 2 {
+		t.Errorf("Groups()[Eng|Senior] has %d rows, want 2", len(engSenior))
+	}
+	if engSenior[0] != 0 || engSenior[1] != 4 {
+		t.Errorf("Groups()[Eng|Senior] = %v, want [0, 4]", engSenior)
+	}
+}
+
+func TestNGroups_AllSame(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "A"},
+		"val": []float64{1, 2, 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	if gb.NGroups() != 1 {
+		t.Errorf("NGroups() = %d, want 1", gb.NGroups())
+	}
+}
+
+func TestNGroups_AllUnique(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "B", "C"},
+		"val": []float64{1, 2, 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	if gb.NGroups() != 3 {
+		t.Errorf("NGroups() = %d, want 3", gb.NGroups())
+	}
+}
+
+func TestGroups_SingleKey(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	groups := gb.Groups()
+
+	eng, ok := groups["Eng"]
+	if !ok {
+		t.Fatal("Groups() missing key 'Eng'")
+	}
+	if len(eng) != 3 || eng[0] != 0 || eng[1] != 2 || eng[2] != 4 {
+		t.Errorf("Groups()[Eng] = %v, want [0, 2, 4]", eng)
+	}
+
+	sales, ok := groups["Sales"]
+	if !ok {
+		t.Fatal("Groups() missing key 'Sales'")
+	}
+	if len(sales) != 2 || sales[0] != 1 || sales[1] != 3 {
+		t.Errorf("Groups()[Sales] = %v, want [1, 3]", sales)
+	}
+}
+
+func TestSize(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	sizes := gb.Size()
+	engVal, engNull := sizes.Loc("Eng")
+	if engNull || engVal != int64(3) {
+		t.Errorf("Size().Loc(Eng) = %v (null=%v), want 3", engVal, engNull)
+	}
+	salesVal, salesNull := sizes.Loc("Sales")
+	if salesNull || salesVal != int64(2) {
+		t.Errorf("Size().Loc(Sales) = %v (null=%v), want 2", salesVal, salesNull)
+	}
+}
+
+func TestSubDF(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	// Eng group: rows 0, 2, 4
+	sub, err := gb.subDF([]int{0, 2, 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, cols := sub.Shape()
+	if rows != 3 {
+		t.Errorf("subDF rows = %d, want 3", rows)
+	}
+	if cols != 3 {
+		t.Errorf("subDF cols = %d, want 3", cols)
+	}
+	// Check first row of sub-DF has Alice
+	val, err := sub.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != "Alice" {
+		t.Errorf("subDF At(0, name) = %v, want Alice", val)
+	}
+	// Check salary of Charlie (row 1 in sub-DF, row 2 in original)
+	val, err = sub.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != 120000.0 {
+		t.Errorf("subDF At(1, salary) = %v, want 120000", val)
+	}
+}
+
+func TestSum(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Sum()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Sum() rows = %d, want 2", rows)
+	}
+	// Check Eng salary sum: 100000 + 120000 + 110000 = 330000
+	// Check Sales salary sum: 80000 + 90000 = 170000
+	// Result is sorted by group key, so Eng=row0, Sales=row1
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 330000.0 {
+		t.Errorf("Sum() Eng salary = %v, want 330000", engSalary)
+	}
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 170000.0 {
+		t.Errorf("Sum() Sales salary = %v, want 170000", salesSalary)
+	}
+}
+
+func TestCount(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Count()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Count() rows = %d, want 2", rows)
+	}
+	// Count includes ALL non-key columns, not just numeric
+	// Eng has 3 rows, Sales has 2
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != int64(3) {
+		t.Errorf("Count() Eng name = %v, want 3", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != int64(3) {
+		t.Errorf("Count() Eng salary = %v, want 3", engSalary)
+	}
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != int64(2) {
+		t.Errorf("Count() Sales name = %v, want 2", salesName)
+	}
+}
+
+func TestMean(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Mean()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng mean salary: (100000+120000+110000)/3 = 110000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 110000.0 {
+		t.Errorf("Mean() Eng salary = %v, want 110000", engSalary)
+	}
+	// Sales mean salary: (80000+90000)/2 = 85000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 85000.0 {
+		t.Errorf("Mean() Sales salary = %v, want 85000", salesSalary)
+	}
+}
+
+func TestMin(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Min()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng min salary: min(100000, 120000, 110000) = 100000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 100000.0 {
+		t.Errorf("Min() Eng salary = %v, want 100000", engSalary)
+	}
+	// Sales min salary: min(80000, 90000) = 80000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 80000.0 {
+		t.Errorf("Min() Sales salary = %v, want 80000", salesSalary)
+	}
+}
+
+func TestMax(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Max()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng max salary: max(100000, 120000, 110000) = 120000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 120000.0 {
+		t.Errorf("Max() Eng salary = %v, want 120000", engSalary)
+	}
+	// Sales max salary: max(80000, 90000) = 90000
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesSalary != 90000.0 {
+		t.Errorf("Max() Sales salary = %v, want 90000", salesSalary)
+	}
+}
+
+func TestStd(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Std()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Eng salaries: 100000, 120000, 110000 -> mean=110000
+	// variance = ((100000-110000)^2 + (120000-110000)^2 + (110000-110000)^2) / (3-1)
+	//          = (1e8 + 1e8 + 0) / 2 = 1e8
+	// std = sqrt(1e8) = 10000
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	engStd, ok := engSalary.(float64)
+	if !ok {
+		t.Fatalf("Std() Eng salary type = %T, want float64", engSalary)
+	}
+	if math.Abs(engStd-10000.0) > 0.01 {
+		t.Errorf("Std() Eng salary = %v, want 10000", engStd)
+	}
+	// Sales salaries: 80000, 90000 -> mean=85000
+	// variance = ((80000-85000)^2 + (90000-85000)^2) / (2-1) = 5e7
+	// std = sqrt(5e7) ≈ 7071.07
+	salesSalary, err := result.At(1, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	salesStd, ok := salesSalary.(float64)
+	if !ok {
+		t.Fatalf("Std() Sales salary type = %T, want float64", salesSalary)
+	}
+	if math.Abs(salesStd-7071.07) > 0.1 {
+		t.Errorf("Std() Sales salary = %v, want ~7071.07", salesStd)
+	}
+}
+
+func TestStd_SingleElement(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "B"},
+		"val": []float64{10.0, 20.0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	result, err := gb.Std()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Single element groups produce NaN
+	aVal, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	aStd, ok := aVal.(float64)
+	if !ok {
+		t.Fatalf("Std() A val type = %T, want float64", aVal)
+	}
+	if !math.IsNaN(aStd) {
+		t.Errorf("Std() single element = %v, want NaN", aStd)
+	}
+}
+
+func TestFirst(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.First()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("First() rows = %d, want 2", rows)
+	}
+	// First includes ALL columns, not just numeric
+	// Eng first: row 0 -> Alice, 100000
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != "Alice" {
+		t.Errorf("First() Eng name = %v, want Alice", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 100000.0 {
+		t.Errorf("First() Eng salary = %v, want 100000", engSalary)
+	}
+	// Sales first: row 1 -> Bob, 80000
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != "Bob" {
+		t.Errorf("First() Sales name = %v, want Bob", salesName)
+	}
+}
+
+func TestLast(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Last()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Last() rows = %d, want 2", rows)
+	}
+	// Eng last: row 4 -> Eve, 110000
+	engName, err := result.At(0, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engName != "Eve" {
+		t.Errorf("Last() Eng name = %v, want Eve", engName)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 110000.0 {
+		t.Errorf("Last() Eng salary = %v, want 110000", engSalary)
+	}
+	// Sales last: row 3 -> Diana, 90000
+	salesName, err := result.At(1, "name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if salesName != "Diana" {
+		t.Errorf("Last() Sales name = %v, want Diana", salesName)
+	}
+}
+
+func TestAgg(t *testing.T) {
+	df := testDF(t)
+	gb := NewGroupBy(df, "dept")
+	result, err := gb.Agg(map[string]string{
+		"salary": "sum",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Agg() rows = %d, want 2", rows)
+	}
+	engSalary, err := result.At(0, "salary")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if engSalary != 330000.0 {
+		t.Errorf("Agg(sum) Eng salary = %v, want 330000", engSalary)
+	}
+}
+
+func TestAgg_MultipleFunctions(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key":  []string{"A", "A", "B", "B"},
+		"val1": []float64{10, 20, 30, 40},
+		"val2": []float64{1, 2, 3, 4},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	result, err := gb.Agg(map[string]string{
+		"val1": "mean",
+		"val2": "max",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A val1 mean = 15, B val1 mean = 35
+	aVal1, err := result.At(0, "val1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal1 != 15.0 {
+		t.Errorf("Agg(mean) A val1 = %v, want 15", aVal1)
+	}
+	// A val2 max = 2, B val2 max = 4
+	aVal2, err := result.At(0, "val2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal2 != 2.0 {
+		t.Errorf("Agg(max) A val2 = %v, want 2", aVal2)
+	}
+	bVal2, err := result.At(1, "val2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bVal2 != 4.0 {
+		t.Errorf("Agg(max) B val2 = %v, want 4", bVal2)
+	}
+}
+
+func TestAgg_UnknownFunc(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B"},
+		"val": []float64{1, 2, 3},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+	_, err = gb.Agg(map[string]string{"val": "bogus"})
+	if err == nil {
+		t.Error("Agg() with unknown function should return error, got nil")
+	}
+}
+
+func TestApply(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Apply: return the head(1) of each group sub-DataFrame
+	result, err := gb.Apply(func(sub dataframe.DataFrame) (dataframe.DataFrame, error) {
+		return sub.Head(1), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Apply() rows = %d, want 2", rows)
+	}
+	// A first val = 10
+	aVal, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aVal != 10.0 {
+		t.Errorf("Apply() A val = %v, want 10", aVal)
+	}
+	// B first val = 30
+	bVal, err := result.At(1, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bVal != 30.0 {
+		t.Errorf("Apply() B val = %v, want 30", bVal)
+	}
+}
+
+func TestApply_CustomAgg(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Apply: compute range (max - min) per group
+	result, err := gb.Apply(func(sub dataframe.DataFrame) (dataframe.DataFrame, error) {
+		n := sub.Len()
+		minVal := math.Inf(1)
+		maxVal := math.Inf(-1)
+		for i := 0; i < n; i++ {
+			v, err := sub.At(i, "val")
+			if err != nil {
+				return dataframe.DataFrame{}, err
+			}
+			f := v.(float64)
+			if f < minVal {
+				minVal = f
+			}
+			if f > maxVal {
+				maxVal = f
+			}
+		}
+		keyVal, err := sub.At(0, "key")
+		if err != nil {
+			return dataframe.DataFrame{}, err
+		}
+		return dataframe.New(map[string]any{
+			"key":    []string{keyVal.(string)},
+			"range_": []float64{maxVal - minVal},
+		})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, _ := result.Shape()
+	if rows != 2 {
+		t.Errorf("Apply() rows = %d, want 2", rows)
+	}
+	// A range = 20-10 = 10
+	aRange, err := result.At(0, "range_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aRange != 10.0 {
+		t.Errorf("Apply() A range = %v, want 10", aRange)
+	}
+	// B range = 40-30 = 10
+	bRange, err := result.At(1, "range_")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bRange != 10.0 {
+		t.Errorf("Apply() B range = %v, want 10", bRange)
+	}
+}
+
+func TestTransform(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"key": []string{"A", "A", "B", "B"},
+		"val": []float64{10, 20, 30, 40},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gb := NewGroupBy(df, "key")
+
+	// Transform: demean each group (subtract group mean)
+	result, err := gb.Transform(func(col string, positions []int, src dataframe.DataFrame) ([]float64, error) {
+		// Compute group mean
+		var sum float64
+		for _, pos := range positions {
+			v, err := src.At(pos, col)
+			if err != nil {
+				return nil, err
+			}
+			sum += v.(float64)
+		}
+		mean := sum / float64(len(positions))
+		// Demean
+		out := make([]float64, len(positions))
+		for i, pos := range positions {
+			v, err := src.At(pos, col)
+			if err != nil {
+				return nil, err
+			}
+			out[i] = v.(float64) - mean
+		}
+		return out, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Original row count preserved
+	if result.Len() != 4 {
+		t.Errorf("Transform() len = %d, want 4", result.Len())
+	}
+	// A group: mean=15, row0=10-15=-5, row1=20-15=5
+	v0, err := result.At(0, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v0 != -5.0 {
+		t.Errorf("Transform() row0 val = %v, want -5", v0)
+	}
+	v1, err := result.At(1, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v1 != 5.0 {
+		t.Errorf("Transform() row1 val = %v, want 5", v1)
+	}
+	// B group: mean=35, row2=30-35=-5, row3=40-35=5
+	v2, err := result.At(2, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v2 != -5.0 {
+		t.Errorf("Transform() row2 val = %v, want -5", v2)
+	}
+	v3, err := result.At(3, "val")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v3 != 5.0 {
+		t.Errorf("Transform() row3 val = %v, want 5", v3)
+	}
+}
+
+// TestIntegration exercises the full groupby pipeline.
+func TestIntegration(t *testing.T) {
+	// Build a more realistic dataset
+	df, err := dataframe.New(map[string]any{
+		"region": []string{"East", "East", "West", "West", "East", "West"},
+		"team":   []string{"A", "B", "A", "B", "A", "A"},
+		"score":  []float64{10, 20, 30, 40, 50, 60},
+		"bonus":  []float64{1, 2, 3, 4, 5, 6},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// --- Single key groupby ---
+	t.Run("SingleKey", func(t *testing.T) {
+		gb := NewGroupBy(df, "region")
+		if gb.NGroups() != 2 {
+			t.Errorf("NGroups() = %d, want 2", gb.NGroups())
+		}
+
+		sizes := gb.Size()
+		eastSize, _ := sizes.Loc("East")
+		westSize, _ := sizes.Loc("West")
+		if eastSize != int64(3) || westSize != int64(3) {
+			t.Errorf("Size: East=%d, West=%d, want 3, 3", eastSize, westSize)
+		}
+
+		sum, err := gb.Sum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// East score sum: 10+20+50=80
+		eastScore, _ := sum.At(0, "score")
+		if eastScore != 80.0 {
+			t.Errorf("Sum East score = %v, want 80", eastScore)
+		}
+
+		mean, err := gb.Mean()
+		if err != nil {
+			t.Fatal(err)
+		}
+		// West score mean: (30+40+60)/3 ≈ 43.333
+		westMean, _ := mean.At(1, "score")
+		westMeanF, ok := westMean.(float64)
+		if !ok || math.Abs(westMeanF-43.333) > 0.1 {
+			t.Errorf("Mean West score = %v, want ~43.333", westMean)
+		}
+
+		count, err := gb.Count()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastCount, _ := count.At(0, "score")
+		if eastCount != int64(3) {
+			t.Errorf("Count East score = %v, want 3", eastCount)
+		}
+
+		min, err := gb.Min()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastMin, _ := min.At(0, "score")
+		if eastMin != 10.0 {
+			t.Errorf("Min East score = %v, want 10", eastMin)
+		}
+
+		max, err := gb.Max()
+		if err != nil {
+			t.Fatal(err)
+		}
+		westMax, _ := max.At(1, "score")
+		if westMax != 60.0 {
+			t.Errorf("Max West score = %v, want 60", westMax)
+		}
+
+		first, err := gb.First()
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastFirstTeam, _ := first.At(0, "team")
+		if eastFirstTeam != "A" {
+			t.Errorf("First East team = %v, want A", eastFirstTeam)
+		}
+
+		last, err := gb.Last()
+		if err != nil {
+			t.Fatal(err)
+		}
+		westLastTeam, _ := last.At(1, "team")
+		if westLastTeam != "A" {
+			t.Errorf("Last West team = %v, want A", westLastTeam)
+		}
+	})
+
+	// --- Multi key groupby ---
+	t.Run("MultiKey", func(t *testing.T) {
+		gb := NewGroupBy(df, "region", "team")
+		if gb.NGroups() != 4 {
+			t.Errorf("NGroups() = %d, want 4", gb.NGroups())
+		}
+
+		sum, err := gb.Sum()
+		if err != nil {
+			t.Fatal(err)
+		}
+		rows, _ := sum.Shape()
+		if rows != 4 {
+			t.Errorf("MultiKey Sum rows = %d, want 4", rows)
+		}
+	})
+
+	// --- Agg with multiple functions ---
+	t.Run("Agg", func(t *testing.T) {
+		gb := NewGroupBy(df, "region")
+		result, err := gb.Agg(map[string]string{
+			"score": "sum",
+			"bonus": "mean",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		eastScore, _ := result.At(0, "score")
+		if eastScore != 80.0 {
+			t.Errorf("Agg East score sum = %v, want 80", eastScore)
+		}
+		// East bonus mean: (1+2+5)/3 ≈ 2.667
+		eastBonus, _ := result.At(0, "bonus")
+		eastBonusF, ok := eastBonus.(float64)
+		if !ok || math.Abs(eastBonusF-2.667) > 0.01 {
+			t.Errorf("Agg East bonus mean = %v, want ~2.667", eastBonus)
+		}
+	})
+}

@@ -49,7 +49,7 @@ package dataframe
 import (
 	"testing"
 
-	"github.com/vchitepu/gopandas/dtype"
+	"github.com/vchitepu/gopandas/lib/dtype"
 )
 
 func TestNew(t *testing.T) {
@@ -113,9 +113,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/vchitepu/gopandas/dtype"
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // DataFrame is an ordered collection of named Series sharing a common Index.
@@ -897,7 +897,7 @@ package dataframe
 import (
 	"fmt"
 
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // Col returns the named column as a Series.
@@ -1282,8 +1282,8 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // Head returns a new DataFrame with the first n rows.
@@ -2027,8 +2027,8 @@ package dataframe
 import (
 	"testing"
 
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 func TestFilter(t *testing.T) {
@@ -2102,8 +2102,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // Filter returns a new DataFrame containing only the rows where
@@ -2470,9 +2470,9 @@ package dataframe
 import (
 	"testing"
 
-	"github.com/vchitepu/gopandas/dtype"
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 func TestWithColumn_Add(t *testing.T) {
@@ -2551,9 +2551,9 @@ package dataframe
 import (
 	"fmt"
 
-	"github.com/vchitepu/gopandas/dtype"
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // WithColumn returns a new DataFrame with the named column added or replaced.
@@ -3757,9 +3757,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/vchitepu/gopandas/dtype"
-	"github.com/vchitepu/gopandas/index"
-	"github.com/vchitepu/gopandas/series"
+	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/vchitepu/gopandas/lib/index"
+	"github.com/vchitepu/gopandas/lib/series"
 )
 
 // Sum returns a Series containing the sum of each numeric column.

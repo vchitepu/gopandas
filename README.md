@@ -39,7 +39,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/vchitepu/gopandas/dataframe"
+	"github.com/vchitepu/gopandas/lib/dataframe"
 )
 
 func main() {
@@ -87,7 +87,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/vchitepu/gopandas/groupby"
+	"github.com/vchitepu/gopandas/lib/groupby"
 )
 
 func exampleGroupBy(df dataframe.DataFrame) {
@@ -108,8 +108,8 @@ package main
 import (
 	"os"
 
-	csvio "github.com/vchitepu/gopandas/dataio/csv"
-	jsonio "github.com/vchitepu/gopandas/dataio/json"
+	csvio "github.com/vchitepu/gopandas/lib/dataio/csv"
+	jsonio "github.com/vchitepu/gopandas/lib/dataio/json"
 )
 
 func exampleIO() {
