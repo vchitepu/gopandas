@@ -469,13 +469,26 @@ func TestConvertCSVToXLSXAndReadShape(t *testing.T) {
 	}
 
 	resetFlags()
-	output, err := executeCommand("read", "--shape", outPath)
+	shapeOutput, err := executeCommand("read", "--shape", outPath)
 	if err != nil {
 		t.Fatalf("unexpected read error: %v", err)
 	}
 
-	if !strings.Contains(output, "(5, 4)") {
-		t.Fatalf("expected shape output to contain (5, 4), got:\n%s", output)
+	if !strings.Contains(shapeOutput, "(5, 4)") {
+		t.Fatalf("expected shape output to contain (5, 4), got:\n%s", shapeOutput)
+	}
+
+	resetFlags()
+	readOutput, err := executeCommand("read", "--head", "1", outPath)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+
+	if !strings.Contains(readOutput, "name") || !strings.Contains(readOutput, "salary") {
+		t.Fatalf("expected read output to contain columns name and salary, got:\n%s", readOutput)
+	}
+	if !strings.Contains(readOutput, "75000.5") {
+		t.Fatalf("expected read output to contain salary value 75000.5, got:\n%s", readOutput)
 	}
 }
 
@@ -483,7 +496,7 @@ func TestConvertXLSXToCSVContainsExpectedData(t *testing.T) {
 	resetFlags()
 
 	outPath := t.TempDir() + "/employees.csv"
-	_, err := executeCommand("convert", "../../testdata/employees.xlsx", outPath)
+	_, err := executeCommand("convert", "testdata/employees.xlsx", outPath)
 	if err != nil {
 		t.Fatalf("unexpected convert error: %v", err)
 	}
@@ -492,13 +505,19 @@ func TestConvertXLSXToCSVContainsExpectedData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read output: %v", err)
 	}
-	content := string(data)
-
-	if !strings.Contains(content, "name") {
-		t.Error("expected CSV output to contain 'name' header")
+	content := strings.TrimSpace(string(data))
+	lines := strings.Split(content, "\n")
+	if len(lines) < 2 {
+		t.Fatalf("expected CSV output to contain header and rows, got:\n%s", content)
 	}
-	if !strings.Contains(content, "Alice Johnson") {
-		t.Error("expected CSV output to contain 'Alice Johnson'")
+
+	header := strings.TrimSuffix(lines[0], "\r")
+	if header != "id,name,department,salary,hire_date,active" {
+		t.Fatalf("unexpected CSV header: %q", header)
+	}
+	firstRow := strings.TrimSuffix(lines[1], "\r")
+	if !strings.Contains(firstRow, "Alice Johnson") {
+		t.Fatalf("expected first CSV row to contain 'Alice Johnson', got: %q", firstRow)
 	}
 }
 
