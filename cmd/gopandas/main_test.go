@@ -442,6 +442,44 @@ func TestReadUnsupportedExtension(t *testing.T) {
 	}
 }
 
+func TestInferFormatXLSX(t *testing.T) {
+	format, err := inferFormat("report.xlsx")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if format != "xlsx" {
+		t.Fatalf("inferFormat(report.xlsx) = %q, want xlsx", format)
+	}
+}
+
+func TestConvertFlagUsageMentionsXLSX(t *testing.T) {
+	from := convertCmd.Flags().Lookup("from")
+	if from == nil {
+		t.Fatal("missing --from flag")
+	}
+	if !strings.Contains(from.Usage, "xlsx") {
+		t.Fatalf("expected --from usage to include xlsx, got: %q", from.Usage)
+	}
+
+	to := convertCmd.Flags().Lookup("to")
+	if to == nil {
+		t.Fatal("missing --to flag")
+	}
+	if !strings.Contains(to.Usage, "xlsx") {
+		t.Fatalf("expected --to usage to include xlsx, got: %q", to.Usage)
+	}
+}
+
+func TestReadFormatFlagUsageMentionsXLSX(t *testing.T) {
+	format := readCmd.Flags().Lookup("format")
+	if format == nil {
+		t.Fatal("missing --format flag")
+	}
+	if !strings.Contains(format.Usage, "xlsx") {
+		t.Fatalf("expected --format usage to include xlsx, got: %q", format.Usage)
+	}
+}
+
 func TestReadMissingFile(t *testing.T) {
 	resetFlags()
 

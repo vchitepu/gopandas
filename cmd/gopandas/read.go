@@ -50,7 +50,7 @@ func init() {
 	readCmd.Flags().StringVar(&readSort, "sort", "", "column to sort by")
 	readCmd.Flags().BoolVar(&readSortDesc, "sort-desc", false, "sort descending")
 	readCmd.Flags().StringVar(&readOutput, "output", "", "write result to file")
-	readCmd.Flags().StringVar(&readFormat, "format", "", "output format: csv, json, parquet (overrides extension)")
+	readCmd.Flags().StringVar(&readFormat, "format", "", "output format: csv, json, parquet, xlsx (overrides extension)")
 	readCmd.Flags().StringVar(&readParseDates, "parse-dates", "", "comma-separated CSV columns to parse as dates")
 	readCmd.Flags().StringVar(&readDateFormat, "date-format", "", "CSV date format layout (Go time format), e.g. 01/02/2006")
 

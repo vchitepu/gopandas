@@ -22,8 +22,8 @@ var convertCmd = &cobra.Command{
 }
 
 func init() {
-	convertCmd.Flags().StringVar(&convertFrom, "from", "", "Input format: csv, json, parquet (default: infer from extension)")
-	convertCmd.Flags().StringVar(&convertTo, "to", "", "Output format: csv, json, parquet (default: infer from extension)")
+	convertCmd.Flags().StringVar(&convertFrom, "from", "", "Input format: csv, json, parquet, xlsx (default: infer from extension)")
+	convertCmd.Flags().StringVar(&convertTo, "to", "", "Output format: csv, json, parquet, xlsx (default: infer from extension)")
 	convertCmd.Flags().StringVar(&convertSelect, "select", "", "Select columns (comma-separated)")
 
 	rootCmd.AddCommand(convertCmd)
