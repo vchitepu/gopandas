@@ -16,7 +16,7 @@ var (
 var convertCmd = &cobra.Command{
 	Use:   "convert <input> <output>",
 	Short: "Convert between data file formats",
-	Long:  "Convert a data file from one format to another (CSV, JSON, Parquet). Format is inferred from file extensions unless --from/--to are specified.",
+	Long:  "Convert a data file from one format to another (CSV, JSON, Parquet, XLSX). Format is inferred from file extensions unless --from/--to are specified.",
 	Args:  cobra.ExactArgs(2),
 	RunE:  runConvert,
 }

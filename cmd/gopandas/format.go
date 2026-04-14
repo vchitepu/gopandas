@@ -8,6 +8,7 @@ import (
 
 	"github.com/vchitepu/gopandas/lib/dataframe"
 	csvio "github.com/vchitepu/gopandas/lib/dataio/csv"
+	excelio "github.com/vchitepu/gopandas/lib/dataio/excel"
 	jsonio "github.com/vchitepu/gopandas/lib/dataio/json"
 	parquetio "github.com/vchitepu/gopandas/lib/dataio/parquet"
 )
@@ -22,6 +23,8 @@ func inferFormat(path string) (string, error) {
 		return "json", nil
 	case ".parquet", ".pq":
 		return "parquet", nil
+	case ".xlsx":
+		return "xlsx", nil
 	default:
 		return "", fmt.Errorf("unsupported file extension %q", ext)
 	}
@@ -54,6 +57,14 @@ func loadFile(path, format string, csvOpts ...csvio.CSVOption) (dataframe.DataFr
 		defer f.Close()
 		return parquetio.FromParquet(f)
 
+	case "xlsx":
+		f, err := os.Open(path)
+		if err != nil {
+			return dataframe.DataFrame{}, fmt.Errorf("open %s: %w", path, err)
+		}
+		defer f.Close()
+		return excelio.FromXLSX(f)
+
 	default:
 		return dataframe.DataFrame{}, fmt.Errorf("unsupported format %q", format)
 	}
@@ -76,6 +87,8 @@ func writeFile(df dataframe.DataFrame, path, format string) error {
 			return jsonio.ToJSON(df, f, jsonio.OrientRecords)
 		case "parquet":
 			return parquetio.ToParquet(df, f)
+		case "xlsx":
+			return excelio.ToXLSX(df, f)
 		default:
 			return fmt.Errorf("unsupported output format %q", format)
 		}

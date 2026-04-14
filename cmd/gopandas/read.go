@@ -32,7 +32,7 @@ var (
 var readCmd = &cobra.Command{
 	Use:   "read <file>",
 	Short: "Read and display a data file",
-	Long:  "Read a CSV, JSON, or Parquet file and apply optional transformations (select, filter, groupby, sort).",
+	Long:  "Read a CSV, JSON, Parquet, or XLSX file and apply optional transformations (select, filter, groupby, sort).",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runRead,
 }
