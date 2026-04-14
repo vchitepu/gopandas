@@ -200,6 +200,28 @@ func TestFromXLSX_SheetByIndex(t *testing.T) {
 	}
 }
 
+func TestFromXLSX_SheetNamePrecedenceOverIndex(t *testing.T) {
+	xlsxBuf := createMultiSheetXLSX(t)
+
+	df, err := FromXLSX(xlsxBuf, WithSheetName("Sales"), WithSheetIndex(0))
+	if err != nil {
+		t.Fatalf("FromXLSX with both SheetName and SheetIndex: %v", err)
+	}
+
+	rows, cols := df.Shape()
+	if rows != 2 || cols != 2 {
+		t.Fatalf("Shape = (%d, %d), want (2, 2)", rows, cols)
+	}
+
+	val, err := df.At(0, "product")
+	if err != nil {
+		t.Fatalf("At(0, product): %v", err)
+	}
+	if val != "Widget" {
+		t.Errorf("At(0, product) = %v, want Widget", val)
+	}
+}
+
 func TestFromXLSX_BadSheetName(t *testing.T) {
 	xlsxBuf := createTestXLSX(t)
 
