@@ -182,15 +182,15 @@ defer in.Close()
 
 df, err := csvio.FromCSV(
 	in,
-	csvio.WithParseDates([]string{"Date"}),
+	csvio.WithParseDates([]string{"date"}),
 	// optional explicit format (Go layout syntax)
-	csvio.WithDateFormats([]string{"01/02/2006"}),
+	csvio.WithDateFormats([]string{"2006-01-02"}),
 )
 if err != nil {
 	panic(err)
 }
 
-fmt.Println(df.DTypes()) // Date => timestamp
+fmt.Println(df.DTypes()) // date => timestamp
 ```
 
 ### 7) Builder / Fluent API
@@ -234,9 +234,9 @@ gopandas read testdata/employees.csv --describe
 ### Parse dates in CSV columns
 
 ```bash
-gopandas read testdata/sales.csv --parse-dates Date --dtypes
-gopandas read testdata/sales.csv --parse-dates Date --date-format 01/02/2006 --dtypes
-gopandas read testdata/sales.csv --parse-dates Date --date-format 01/02/2006 --filter "Date > '11/12/2025'"
+gopandas read testdata/sales.csv --parse-dates date --dtypes
+gopandas read testdata/sales.csv --parse-dates date --date-format 2006-01-02 --dtypes
+gopandas read testdata/sales.csv --parse-dates date --date-format 2006-01-02 --filter "date > '2025-01-12'"
 ```
 
 Tip: when filtering date columns, wrap date literals in quotes in the query string.
@@ -250,15 +250,15 @@ gopandas read testdata/employees.csv --select name,salary --filter "salary > 800
 ### Group and aggregate
 
 ```bash
-gopandas read testdata/employees.csv --groupby city --agg mean
-gopandas read testdata/employees.csv --groupby city --agg count
+gopandas read testdata/employees.csv --groupby department --agg mean
+gopandas read testdata/employees.csv --groupby department --agg count
 ```
 
 ### Write transformed output
 
 ```bash
-gopandas read testdata/employees.csv --select name,age --output employees_subset.csv
-gopandas read testdata/employees.csv --filter "age >= 30" --output employees_30_plus.json --format json
+gopandas read testdata/employees.csv --select name,department --output employees_subset.csv
+gopandas read testdata/employees.csv --filter "salary >= 90000" --output employees_90k_plus.json --format json
 ```
 
 ### Read XLSX from CLI
@@ -275,7 +275,7 @@ gopandas read testdata/employees.xlsx --filter "salary > 90000"
 gopandas convert testdata/employees.csv employees.json
 gopandas convert testdata/simple.json simple.csv
 gopandas convert testdata/sales.csv sales.parquet --from csv --to parquet
-gopandas convert testdata/employees.csv employees_subset.csv --select name,age
+gopandas convert testdata/employees.csv employees_subset.csv --select name,department
 gopandas convert testdata/employees.xlsx output.csv
 gopandas convert testdata/employees.csv output.xlsx
 ```
