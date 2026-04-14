@@ -265,8 +265,8 @@ gopandas read testdata/employees.csv --filter "age >= 30" --output employees_30_
 
 ```bash
 gopandas read testdata/employees.xlsx
-gopandas read testdata/employees.xlsx --head 2
-gopandas read testdata/employees.xlsx --filter "salary >= 75000"
+gopandas read testdata/employees.xlsx --head 10
+gopandas read testdata/employees.xlsx --filter "salary > 90000"
 ```
 
 ### Convert between formats
@@ -276,8 +276,8 @@ gopandas convert testdata/employees.csv employees.json
 gopandas convert testdata/simple.json simple.csv
 gopandas convert testdata/sales.csv sales.parquet --from csv --to parquet
 gopandas convert testdata/employees.csv employees_subset.csv --select name,age
-gopandas convert testdata/employees.xlsx employees_from_xlsx.csv
-gopandas convert testdata/employees.csv employees_from_csv.xlsx
+gopandas convert testdata/employees.xlsx output.csv
+gopandas convert testdata/employees.csv output.xlsx
 ```
 
 ## Planned Features
