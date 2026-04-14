@@ -246,6 +246,18 @@ func TestFromXLSX_SheetIndexOutOfRange(t *testing.T) {
 	}
 }
 
+func TestFromXLSX_InvalidNegativeSheetIndex(t *testing.T) {
+	xlsxBuf := createTestXLSX(t)
+
+	_, err := FromXLSX(xlsxBuf, WithSheetIndex(-2))
+	if err == nil {
+		t.Fatal("expected error for invalid negative sheet index, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid sheet index -2") {
+		t.Fatalf("error = %q, want invalid sheet index", err)
+	}
+}
+
 func TestFromXLSX_EmptySheet(t *testing.T) {
 	f := excelize.NewFile()
 	defer f.Close()
@@ -261,5 +273,26 @@ func TestFromXLSX_EmptySheet(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "empty sheet") {
 		t.Fatalf("error = %q, want empty sheet", err)
+	}
+}
+
+func TestFromXLSX_EmptyHeaderRow(t *testing.T) {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "Sheet1"
+	f.SetCellStr(sheet, "A2", "Alice")
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		t.Fatalf("write xlsx: %v", err)
+	}
+
+	_, err := FromXLSX(&buf)
+	if err == nil {
+		t.Fatal("expected error for empty header row, got nil")
+	}
+	if !strings.Contains(err.Error(), "empty or invalid header row") {
+		t.Fatalf("error = %q, want empty or invalid header row", err)
 	}
 }

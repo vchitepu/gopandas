@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -47,6 +48,15 @@ func FromXLSX(r io.Reader, opts ...XLSXOption) (dataframe.DataFrame, error) {
 	}
 
 	header := allRows[0]
+	if len(header) == 0 {
+		return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: empty or invalid header row")
+	}
+	for _, col := range header {
+		if strings.TrimSpace(col) == "" {
+			return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: empty or invalid header row")
+		}
+	}
+
 	dataRows := allRows[1:]
 	nCols := len(header)
 	nRows := len(dataRows)
@@ -85,6 +95,11 @@ func FromXLSX(r io.Reader, opts ...XLSXOption) (dataframe.DataFrame, error) {
 		dt := inferColumnType(rc.values)
 		arr, err := buildArrowArray(alloc, rc.values, dt)
 		if err != nil {
+			for j := 0; j < i; j++ {
+				if arrays[j] != nil {
+					arrays[j].Release()
+				}
+			}
 			return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: column %q: %w", rc.name, err)
 		}
 		fields[i] = arrow.Field{Name: rc.name, Type: arr.DataType()}
