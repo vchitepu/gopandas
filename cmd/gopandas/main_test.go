@@ -430,6 +430,78 @@ func TestReadJSON(t *testing.T) {
 	}
 }
 
+func TestReadXLSXContainsExpectedNames(t *testing.T) {
+	resetFlags()
+
+	output, err := executeCommand("read", "testdata/sample.xlsx")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(output, "Alice") {
+		t.Error("expected output to contain 'Alice'")
+	}
+	if !strings.Contains(output, "Eve") {
+		t.Error("expected output to contain 'Eve'")
+	}
+}
+
+func TestReadXLSXShape(t *testing.T) {
+	resetFlags()
+
+	output, err := executeCommand("read", "--shape", "testdata/sample.xlsx")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !strings.Contains(output, "(5, 4)") {
+		t.Fatalf("expected shape output to contain (5, 4), got:\n%s", output)
+	}
+}
+
+func TestConvertCSVToXLSXAndReadShape(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/output.xlsx"
+	_, err := executeCommand("convert", "testdata/sample.csv", outPath)
+	if err != nil {
+		t.Fatalf("unexpected convert error: %v", err)
+	}
+
+	resetFlags()
+	output, err := executeCommand("read", "--shape", outPath)
+	if err != nil {
+		t.Fatalf("unexpected read error: %v", err)
+	}
+
+	if !strings.Contains(output, "(5, 4)") {
+		t.Fatalf("expected shape output to contain (5, 4), got:\n%s", output)
+	}
+}
+
+func TestConvertXLSXToCSVContainsExpectedData(t *testing.T) {
+	resetFlags()
+
+	outPath := t.TempDir() + "/employees.csv"
+	_, err := executeCommand("convert", "../../testdata/employees.xlsx", outPath)
+	if err != nil {
+		t.Fatalf("unexpected convert error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output: %v", err)
+	}
+	content := string(data)
+
+	if !strings.Contains(content, "name") {
+		t.Error("expected CSV output to contain 'name' header")
+	}
+	if !strings.Contains(content, "Alice Johnson") {
+		t.Error("expected CSV output to contain 'Alice Johnson'")
+	}
+}
+
 func TestReadUnsupportedExtension(t *testing.T) {
 	resetFlags()
 
