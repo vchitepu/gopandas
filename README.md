@@ -159,7 +159,7 @@ func exampleExcelIO() {
 		panic(err)
 	}
 
-	out, err := os.Create("employees_copy.xlsx")
+	out, err := os.Create("output.xlsx")
 	if err != nil {
 		panic(err)
 	}
