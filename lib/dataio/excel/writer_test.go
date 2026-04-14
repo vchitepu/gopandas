@@ -2,6 +2,7 @@ package excel
 
 import (
 	"bytes"
+	"strconv"
 	"testing"
 
 	"github.com/vchitepu/gopandas/lib/dataframe"
@@ -39,6 +40,11 @@ func TestToXLSX_Simple(t *testing.T) {
 	}
 
 	header := rows[0]
+	headerIndex := make(map[string]int, len(header))
+	for i, h := range header {
+		headerIndex[h] = i
+	}
+
 	hasName, hasAge, hasSalary := false, false, false
 	for _, h := range header {
 		switch h {
@@ -52,6 +58,19 @@ func TestToXLSX_Simple(t *testing.T) {
 	}
 	if !hasName || !hasAge || !hasSalary {
 		t.Errorf("header = %v, want columns name, age, salary", header)
+	}
+
+	row1 := rows[1]
+	ageIdx, nameIdx, salaryIdx := headerIndex["age"], headerIndex["name"], headerIndex["salary"]
+	if row1[ageIdx] != "30" || row1[nameIdx] != "Alice" {
+		t.Fatalf("row1 = %v, want age=30 and name=Alice", row1)
+	}
+	salary, err := strconv.ParseFloat(row1[salaryIdx], 64)
+	if err != nil {
+		t.Fatalf("ParseFloat(row1 salary %q): %v", row1[salaryIdx], err)
+	}
+	if salary != 95000.5 {
+		t.Fatalf("row1 salary = %v, want 95000.5", salary)
 	}
 }
 
