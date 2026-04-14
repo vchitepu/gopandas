@@ -6,7 +6,7 @@ It includes:
 - `DataFrame` and `Series`
 - GroupBy + aggregations
 - Core reshape/merge operations
-- CSV/JSON/Parquet I/O
+- CSV/JSON/Parquet/XLSX I/O
 - `gopandas` CLI (`read`, `convert`)
 
 ## Install
@@ -100,7 +100,7 @@ func exampleGroupBy(df dataframe.DataFrame) {
 }
 ```
 
-### 4) Read and write files
+### 4) Read and write CSV/JSON files
 
 ```go
 package main
@@ -113,7 +113,7 @@ import (
 )
 
 func exampleIO() {
-	in, err := os.Open("input.csv")
+	in, err := os.Open("testdata/employees.csv")
 	if err != nil {
 		panic(err)
 	}
@@ -124,7 +124,7 @@ func exampleIO() {
 		panic(err)
 	}
 
-	out, err := os.Create("output.json")
+	out, err := os.Create("employees.json")
 	if err != nil {
 		panic(err)
 	}
@@ -136,10 +136,45 @@ func exampleIO() {
 }
 ```
 
-### 5) Parse CSV date columns as timestamps
+### 5) Read and write XLSX files (`lib/dataio/excel`)
 
 ```go
-in, err := os.Open("transactions.csv")
+package main
+
+import (
+	"os"
+
+	excelio "github.com/vchitepu/gopandas/lib/dataio/excel"
+)
+
+func exampleExcelIO() {
+	in, err := os.Open("testdata/employees.xlsx")
+	if err != nil {
+		panic(err)
+	}
+	defer in.Close()
+
+	df, err := excelio.FromXLSX(in)
+	if err != nil {
+		panic(err)
+	}
+
+	out, err := os.Create("employees_copy.xlsx")
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+
+	if err := excelio.ToXLSX(df, out); err != nil {
+		panic(err)
+	}
+}
+```
+
+### 6) Parse CSV date columns as timestamps
+
+```go
+in, err := os.Open("testdata/sales.csv")
 if err != nil {
 	panic(err)
 }
@@ -158,7 +193,7 @@ if err != nil {
 fmt.Println(df.DTypes()) // Date => timestamp
 ```
 
-### 6) Builder / Fluent API
+### 7) Builder / Fluent API
 
 Use the builder when you want to chain DataFrame operations in one pipeline without handling intermediate errors at each step.
 
@@ -189,19 +224,19 @@ go build -o gopandas ./cmd/gopandas
 ### Read a file
 
 ```bash
-gopandas read data.csv
-gopandas read data.csv --head 10
-gopandas read data.csv --shape
-gopandas read data.csv --dtypes
-gopandas read data.csv --describe
+gopandas read testdata/employees.csv
+gopandas read testdata/employees.csv --head 3
+gopandas read testdata/employees.csv --shape
+gopandas read testdata/employees.csv --dtypes
+gopandas read testdata/employees.csv --describe
 ```
 
 ### Parse dates in CSV columns
 
 ```bash
-gopandas read transactions.csv --parse-dates Date --dtypes
-gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --dtypes
-gopandas read transactions.csv --parse-dates Date --date-format 01/02/2006 --filter "Date > '11/12/2025'"
+gopandas read testdata/sales.csv --parse-dates Date --dtypes
+gopandas read testdata/sales.csv --parse-dates Date --date-format 01/02/2006 --dtypes
+gopandas read testdata/sales.csv --parse-dates Date --date-format 01/02/2006 --filter "Date > '11/12/2025'"
 ```
 
 Tip: when filtering date columns, wrap date literals in quotes in the query string.
@@ -209,30 +244,40 @@ Tip: when filtering date columns, wrap date literals in quotes in the query stri
 ### Select/filter/sort from CLI
 
 ```bash
-gopandas read data.csv --select name,salary --filter "salary > 80000" --sort salary --sort-desc
+gopandas read testdata/employees.csv --select name,salary --filter "salary > 80000" --sort salary --sort-desc
 ```
 
 ### Group and aggregate
 
 ```bash
-gopandas read data.csv --groupby city --agg mean
-gopandas read data.csv --groupby city --agg count
+gopandas read testdata/employees.csv --groupby city --agg mean
+gopandas read testdata/employees.csv --groupby city --agg count
 ```
 
 ### Write transformed output
 
 ```bash
-gopandas read data.csv --select name,age --output out.csv
-gopandas read data.csv --filter "age >= 30" --output out.json --format json
+gopandas read testdata/employees.csv --select name,age --output employees_subset.csv
+gopandas read testdata/employees.csv --filter "age >= 30" --output employees_30_plus.json --format json
+```
+
+### Read XLSX from CLI
+
+```bash
+gopandas read testdata/employees.xlsx
+gopandas read testdata/employees.xlsx --head 2
+gopandas read testdata/employees.xlsx --filter "salary >= 75000"
 ```
 
 ### Convert between formats
 
 ```bash
-gopandas convert input.csv output.json
-gopandas convert input.json output.csv
-gopandas convert input.csv output.dat --from csv --to parquet
-gopandas convert input.csv output.csv --select name,age
+gopandas convert testdata/employees.csv employees.json
+gopandas convert testdata/simple.json simple.csv
+gopandas convert testdata/sales.csv sales.parquet --from csv --to parquet
+gopandas convert testdata/employees.csv employees_subset.csv --select name,age
+gopandas convert testdata/employees.xlsx employees_from_xlsx.csv
+gopandas convert testdata/employees.csv employees_from_csv.xlsx
 ```
 
 ## Planned Features
@@ -243,7 +288,6 @@ Planned for future versions:
 - Time series resampling (`resample`, frequency math)
 - Rolling / expanding / EWM windows
 - Sparse arrays
-- Excel I/O (`.xlsx`)
 - SQL I/O (`read_sql`, `to_sql`)
 - HDF5 I/O
 - Styler (HTML display formatting)
