@@ -2,14 +2,105 @@ package excel
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/vchitepu/gopandas/lib/dataframe"
 	"github.com/vchitepu/gopandas/lib/dtype"
+	"github.com/xuri/excelize/v2"
 )
+
+// FromXLSX reads an xlsx workbook from r and returns a DataFrame.
+// By default, the first sheet is read. Use WithSheetName or WithSheetIndex to select another.
+func FromXLSX(r io.Reader, opts ...XLSXOption) (dataframe.DataFrame, error) {
+	cfg := defaultConfig()
+	for _, o := range opts {
+		o(&cfg)
+	}
+	if cfg.sheetIndex < unsetSheetIndex {
+		return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: invalid sheet index %d", cfg.sheetIndex)
+	}
+
+	f, err := excelize.OpenReader(r)
+	if err != nil {
+		return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: %w", err)
+	}
+	defer f.Close()
+
+	sheetName, err := resolveSheet(f, cfg)
+	if err != nil {
+		return dataframe.DataFrame{}, err
+	}
+
+	allRows, err := f.GetRows(sheetName)
+	if err != nil {
+		return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: %w", err)
+	}
+
+	allRows = trimTrailingEmptyRows(allRows)
+	if len(allRows) == 0 {
+		return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: empty sheet")
+	}
+
+	header := allRows[0]
+	dataRows := allRows[1:]
+	nCols := len(header)
+	nRows := len(dataRows)
+
+	for i := range dataRows {
+		if len(dataRows[i]) < nCols {
+			padded := make([]string, nCols)
+			copy(padded, dataRows[i])
+			dataRows[i] = padded
+		}
+	}
+
+	type rawColumn struct {
+		name   string
+		values []any
+	}
+	rawCols := make([]rawColumn, nCols)
+	for c := 0; c < nCols; c++ {
+		vals := make([]any, nRows)
+		for r := 0; r < nRows; r++ {
+			cell := dataRows[r][c]
+			if cell == "" {
+				vals[r] = nil
+			} else {
+				vals[r] = cell
+			}
+		}
+		rawCols[c] = rawColumn{name: header[c], values: vals}
+	}
+
+	alloc := memory.DefaultAllocator
+	fields := make([]arrow.Field, nCols)
+	arrays := make([]arrow.Array, nCols)
+
+	for i, rc := range rawCols {
+		dt := inferColumnType(rc.values)
+		arr, err := buildArrowArray(alloc, rc.values, dt)
+		if err != nil {
+			return dataframe.DataFrame{}, fmt.Errorf("excel.FromXLSX: column %q: %w", rc.name, err)
+		}
+		fields[i] = arrow.Field{Name: rc.name, Type: arr.DataType()}
+		arrays[i] = arr
+	}
+
+	schema := arrow.NewSchema(fields, nil)
+	rec := array.NewRecord(schema, arrays, int64(nRows))
+	defer rec.Release()
+
+	for _, arr := range arrays {
+		arr.Release()
+	}
+
+	return dataframe.FromArrow(rec)
+}
 
 // defaultDateFormats are the Go time layouts tried when inferring dates.
 var defaultDateFormats = []string{
@@ -197,4 +288,48 @@ func buildTimestampArray(alloc memory.Allocator, values []any) (arrow.Array, err
 	}
 
 	return bldr.NewTimestampArray(), nil
+}
+
+// resolveSheet determines which sheet to read based on config.
+func resolveSheet(f *excelize.File, cfg xlsxConfig) (string, error) {
+	sheets := f.GetSheetList()
+	if len(sheets) == 0 {
+		return "", fmt.Errorf("excel.FromXLSX: workbook has no sheets")
+	}
+
+	if cfg.sheetName != "" {
+		for _, sheet := range sheets {
+			if sheet == cfg.sheetName {
+				return sheet, nil
+			}
+		}
+		return "", fmt.Errorf("excel.FromXLSX: sheet %q not found", cfg.sheetName)
+	}
+
+	if cfg.sheetIndex >= 0 {
+		if cfg.sheetIndex >= len(sheets) {
+			return "", fmt.Errorf("excel.FromXLSX: sheet index %d out of range (file has %d sheets)", cfg.sheetIndex, len(sheets))
+		}
+		return sheets[cfg.sheetIndex], nil
+	}
+
+	return sheets[0], nil
+}
+
+// trimTrailingEmptyRows removes trailing rows where every cell is empty.
+func trimTrailingEmptyRows(rows [][]string) [][]string {
+	for i := len(rows) - 1; i >= 0; i-- {
+		empty := true
+		for _, cell := range rows[i] {
+			if cell != "" {
+				empty = false
+				break
+			}
+		}
+		if !empty {
+			return rows[:i+1]
+		}
+	}
+
+	return nil
 }
