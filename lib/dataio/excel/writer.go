@@ -67,7 +67,7 @@ func ToXLSX(df dataframe.DataFrame, w io.Writer, opts ...XLSXOption) error {
 					return fmt.Errorf("excel.ToXLSX: write int: %w", err)
 				}
 			case float64:
-				if err := f.SetCellFloat(sheetName, cell, v, 6, 64); err != nil {
+				if err := f.SetCellFloat(sheetName, cell, v, -1, 64); err != nil {
 					return fmt.Errorf("excel.ToXLSX: write float: %w", err)
 				}
 			case bool:
