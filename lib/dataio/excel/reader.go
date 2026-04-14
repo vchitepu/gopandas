@@ -19,14 +19,17 @@ var defaultDateFormats = []string{
 	"2006/01/02",
 	"01-02-2006",
 	"1-2-2006",
-	"01/02/06",
-	"1/2/06",
-	"January 2, 2006",
-	"Jan 2, 2006",
-	"2006-01-02 15:04:05",
-	"01/02/2006 15:04:05",
-	"1/2/2006 15:04:05",
-	"2006-01-02T15:04:05",
+}
+
+func valueToString(v any) (string, bool) {
+	if v == nil {
+		return "", false
+	}
+	s, ok := v.(string)
+	if !ok {
+		return "", false
+	}
+	return s, true
 }
 
 // inferColumnType tries int64 -> float64 -> timestamp -> string.
@@ -38,12 +41,12 @@ func inferColumnType(values []any) dtype.DType {
 	allDate := true
 
 	for _, v := range values {
-		if v == nil {
+		s, ok := valueToString(v)
+		if !ok {
 			hasNull = true
 			continue
 		}
 
-		s := v.(string)
 		if allInt {
 			if _, err := strconv.ParseInt(s, 10, 64); err != nil {
 				allInt = false
@@ -109,12 +112,16 @@ func buildInt64Array(alloc memory.Allocator, values []any) (arrow.Array, error) 
 	defer bldr.Release()
 
 	for _, v := range values {
-		if v == nil {
-			bldr.AppendNull()
-			continue
+		s, ok := valueToString(v)
+		if !ok {
+			if v == nil {
+				bldr.AppendNull()
+				continue
+			}
+			return nil, fmt.Errorf("cannot convert %v to string for int64 parsing", v)
 		}
 
-		n, err := strconv.ParseInt(v.(string), 10, 64)
+		n, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse %q as int64: %w", v, err)
 		}
@@ -129,12 +136,16 @@ func buildFloat64Array(alloc memory.Allocator, values []any) (arrow.Array, error
 	defer bldr.Release()
 
 	for _, v := range values {
-		if v == nil {
-			bldr.AppendNull()
-			continue
+		s, ok := valueToString(v)
+		if !ok {
+			if v == nil {
+				bldr.AppendNull()
+				continue
+			}
+			return nil, fmt.Errorf("cannot convert %v to string for float64 parsing", v)
 		}
 
-		f, err := strconv.ParseFloat(v.(string), 64)
+		f, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse %q as float64: %w", v, err)
 		}
@@ -149,11 +160,15 @@ func buildStringArray(alloc memory.Allocator, values []any) (arrow.Array, error)
 	defer bldr.Release()
 
 	for _, v := range values {
-		if v == nil {
-			bldr.AppendNull()
-			continue
+		s, ok := valueToString(v)
+		if !ok {
+			if v == nil {
+				bldr.AppendNull()
+				continue
+			}
+			return nil, fmt.Errorf("cannot convert %v to string", v)
 		}
-		bldr.Append(v.(string))
+		bldr.Append(s)
 	}
 
 	return bldr.NewStringArray(), nil
@@ -165,12 +180,16 @@ func buildTimestampArray(alloc memory.Allocator, values []any) (arrow.Array, err
 	defer bldr.Release()
 
 	for _, v := range values {
-		if v == nil {
-			bldr.AppendNull()
-			continue
+		s, ok := valueToString(v)
+		if !ok {
+			if v == nil {
+				bldr.AppendNull()
+				continue
+			}
+			return nil, fmt.Errorf("cannot convert %v to string for timestamp parsing", v)
 		}
 
-		t, ok := parseDateString(v.(string))
+		t, ok := parseDateString(s)
 		if !ok {
 			return nil, fmt.Errorf("cannot parse %q as timestamp", v)
 		}
