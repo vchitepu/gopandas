@@ -296,3 +296,40 @@ func TestFromXLSX_EmptyHeaderRow(t *testing.T) {
 		t.Fatalf("error = %q, want empty or invalid header row", err)
 	}
 }
+
+func TestFromXLSX_InferTimestampFromShortYearDateFormat(t *testing.T) {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	sheet := "Sheet1"
+	f.SetCellStr(sheet, "A1", "date")
+	f.SetCellStr(sheet, "A2", "01-02-25")
+	f.SetCellStr(sheet, "A3", "1-2-06")
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		t.Fatalf("write xlsx: %v", err)
+	}
+
+	df, err := FromXLSX(&buf)
+	if err != nil {
+		t.Fatalf("FromXLSX: %v", err)
+	}
+
+	dtypes := df.DTypes()
+	if dtypes["date"] != dtype.Timestamp {
+		t.Fatalf("date dtype = %v, want Timestamp", dtypes["date"])
+	}
+
+	v0, err := df.At(0, "date")
+	if err != nil {
+		t.Fatalf("At(0, date): %v", err)
+	}
+	t0, ok := v0.(time.Time)
+	if !ok {
+		t.Fatalf("At(0, date) type = %T, want time.Time", v0)
+	}
+	if !t0.Equal(time.Date(2025, 1, 2, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("At(0, date) = %v, want 2025-01-02 00:00:00 +0000 UTC", t0)
+	}
+}

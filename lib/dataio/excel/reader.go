@@ -121,10 +121,14 @@ func FromXLSX(r io.Reader, opts ...XLSXOption) (dataframe.DataFrame, error) {
 var defaultDateFormats = []string{
 	"01/02/2006",
 	"1/2/2006",
+	"01/02/06",
+	"1/2/06",
 	"2006-01-02",
 	"2006/01/02",
 	"01-02-2006",
 	"1-2-2006",
+	"01-02-06",
+	"1-2-06",
 }
 
 func valueToString(v any) (string, bool) {
@@ -145,6 +149,7 @@ func inferColumnType(values []any) dtype.DType {
 	allInt := true
 	allFloat := true
 	allDate := true
+	allBool := true
 
 	for _, v := range values {
 		s, ok := valueToString(v)
@@ -168,7 +173,12 @@ func inferColumnType(values []any) dtype.DType {
 				allDate = false
 			}
 		}
-		if !allInt && !allFloat && !allDate {
+		if allBool {
+			if _, err := strconv.ParseBool(s); err != nil {
+				allBool = false
+			}
+		}
+		if !allInt && !allFloat && !allDate && !allBool {
 			break
 		}
 	}
@@ -184,6 +194,9 @@ func inferColumnType(values []any) dtype.DType {
 	}
 	if allDate {
 		return dtype.Timestamp
+	}
+	if allBool {
+		return dtype.Bool
 	}
 	return dtype.String
 }
@@ -206,11 +219,37 @@ func buildArrowArray(alloc memory.Allocator, values []any, dt dtype.DType) (arro
 		return buildFloat64Array(alloc, values)
 	case dtype.Timestamp:
 		return buildTimestampArray(alloc, values)
+	case dtype.Bool:
+		return buildBoolArray(alloc, values)
 	case dtype.String:
 		return buildStringArray(alloc, values)
 	default:
 		return nil, fmt.Errorf("unsupported dtype %v", dt)
 	}
+}
+
+func buildBoolArray(alloc memory.Allocator, values []any) (arrow.Array, error) {
+	bldr := array.NewBooleanBuilder(alloc)
+	defer bldr.Release()
+
+	for _, v := range values {
+		s, ok := valueToString(v)
+		if !ok {
+			if v == nil {
+				bldr.AppendNull()
+				continue
+			}
+			return nil, fmt.Errorf("cannot convert %v to string for bool parsing", v)
+		}
+
+		b, err := strconv.ParseBool(s)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse %q as bool: %w", v, err)
+		}
+		bldr.Append(b)
+	}
+
+	return bldr.NewBooleanArray(), nil
 }
 
 func buildInt64Array(alloc memory.Allocator, values []any) (arrow.Array, error) {

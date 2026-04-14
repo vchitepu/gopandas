@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/vchitepu/gopandas/lib/dataframe"
+	"github.com/vchitepu/gopandas/lib/dtype"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -264,5 +265,46 @@ func TestToXLSX_BoolTimeAndNilCells(t *testing.T) {
 	}
 	if n2 != "" {
 		t.Fatalf("note row2 = %q, want empty", n2)
+	}
+}
+
+func TestToXLSX_FromXLSX_BoolRoundTrip(t *testing.T) {
+	df, err := dataframe.New(map[string]any{
+		"active": []bool{true, false, true},
+	})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if err := ToXLSX(df, &buf); err != nil {
+		t.Fatalf("ToXLSX: %v", err)
+	}
+
+	roundTrip, err := FromXLSX(&buf)
+	if err != nil {
+		t.Fatalf("FromXLSX: %v", err)
+	}
+
+	dtypes := roundTrip.DTypes()
+	if dtypes["active"] != dtype.Bool {
+		t.Fatalf("active dtype = %v, want Bool", dtypes["active"])
+	}
+
+	v0, err := roundTrip.At(0, "active")
+	if err != nil {
+		t.Fatalf("At(0, active): %v", err)
+	}
+	v1, err := roundTrip.At(1, "active")
+	if err != nil {
+		t.Fatalf("At(1, active): %v", err)
+	}
+	v2, err := roundTrip.At(2, "active")
+	if err != nil {
+		t.Fatalf("At(2, active): %v", err)
+	}
+
+	if v0 != true || v1 != false || v2 != true {
+		t.Fatalf("active values = [%v %v %v], want [true false true]", v0, v1, v2)
 	}
 }
