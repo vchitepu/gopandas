@@ -1,0 +1,21 @@
+id,name,department,salary,hire_date,active
+1,Alice Johnson,Engineering,98000,2019-03-15,true
+2,Bob Smith,Sales,76000,2020-07-01,true
+3,Carol Lee,HR,64000,2018-11-20,true
+4,David Kim,Engineering,112000,2017-05-10,true
+5,Eva Brown,Finance,85000,2021-01-25,true
+6,Frank Miller,Marketing,71000,2019-09-30,true
+7,Grace Wilson,Engineering,105000,2016-02-14,true
+8,Henry Davis,Support,58000,2022-04-18,true
+9,Irene Taylor,Sales,79000,2018-08-06,true
+10,Jack Anderson,Engineering,95000,2020-12-12,true
+11,Karen Thomas,Finance,88000,2017-10-03,true
+12,Liam Moore,Support,60000,2023-01-09,true
+13,Mia Martin,Marketing,73000,2021-06-21,true
+14,Noah White,Engineering,118000,2015-07-27,true
+15,Olivia Harris,HR,67000,2019-02-05,true
+16,Paul Clark,Sales,82000,2016-09-16,false
+17,Quinn Lewis,Engineering,99000,2022-11-11,true
+18,Ruby Walker,Finance,91000,2018-03-29,true
+19,Sam Hall,Support,59000,2020-05-19,false
+20,Tina Young,Marketing,75000,2017-12-01,true
