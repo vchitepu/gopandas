@@ -16,14 +16,14 @@ var (
 var convertCmd = &cobra.Command{
 	Use:   "convert <input> <output>",
 	Short: "Convert between data file formats",
-	Long:  "Convert a data file from one format to another (CSV, JSON, Parquet). Format is inferred from file extensions unless --from/--to are specified.",
+	Long:  "Convert a data file from one format to another (CSV, JSON, Parquet, XLSX). Format is inferred from file extensions unless --from/--to are specified.",
 	Args:  cobra.ExactArgs(2),
 	RunE:  runConvert,
 }
 
 func init() {
-	convertCmd.Flags().StringVar(&convertFrom, "from", "", "Input format: csv, json, parquet (default: infer from extension)")
-	convertCmd.Flags().StringVar(&convertTo, "to", "", "Output format: csv, json, parquet (default: infer from extension)")
+	convertCmd.Flags().StringVar(&convertFrom, "from", "", "Input format: csv, json, parquet, xlsx (default: infer from extension)")
+	convertCmd.Flags().StringVar(&convertTo, "to", "", "Output format: csv, json, parquet, xlsx (default: infer from extension)")
 	convertCmd.Flags().StringVar(&convertSelect, "select", "", "Select columns (comma-separated)")
 
 	rootCmd.AddCommand(convertCmd)
